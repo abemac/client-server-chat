@@ -9,8 +9,9 @@ class Client:
         self.serverport=serverport
         self.socket=socket(AF_INET,SOCK_DGRAM)
         self.running=False
+
     def login(self):
-        self.sendmessage('LOGIN user=abraham password=password')
+        self.sendmessage('LOGIN,abraham')
 
     def start(self):
         self.running=True

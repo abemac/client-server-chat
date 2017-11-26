@@ -2,7 +2,6 @@ import time
 class User:
     def __init__(self,username,ipaddr=''):
         self.username=username
-        self.pwd_hash=gethash(password)
         self.ipaddr=ipaddr;
 
 class Message:

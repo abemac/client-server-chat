@@ -11,7 +11,7 @@ class ChatServer:
         print("Chat server initiated")
 
         u=User('abraham')
-        self.users+=u
+        self.users.append(u)
 
     def start(self):
         self.running=True
@@ -26,7 +26,7 @@ class ChatServer:
                 user_from=line[1]
                 message=line[2].replace('&quot;','\"');
                 self.getUser(user_from).ipaddr=clientaddress #update User ip
-                m=Message(user_from,user_to,message);
+                m=Message(user_from,message);
 
 
     def sendMsg(message):
