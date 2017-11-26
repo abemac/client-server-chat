@@ -17,8 +17,6 @@ class Client(tk.Frame):
         self.textentry=tk.Text(self,height=3,width=40)
         self.textentry.pack(side="bottom")
 
-
-
         self.scrollbar=tk.Scrollbar(self)
         self.scrollbar.pack(side=tk.RIGHT,fill=tk.Y)
         self.msgs=tk.Listbox(self,yscrollcommand=self.scrollbar.set,width=40)
@@ -72,7 +70,7 @@ class Client(tk.Frame):
                 username=line[1]
                 message=line[2]
                 if username == self.username:
-                    self.msgs.insert(tk.END,("<b>You:</b> "+message.replace('&quot;','"').replace('\n','')))
+                    self.msgs.insert(tk.END,("You: "+message.replace('&quot;','"').replace('\n','')))
                 else:
                     self.msgs.insert(tk.END,(username+": "+message.replace('&quot;','"').replace('\n','')))
             elif line[0] == 'ERROR':
