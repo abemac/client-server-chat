@@ -23,14 +23,12 @@ class Client(tk.Frame):
         self.scrollbar.pack(side=tk.RIGHT,fill=tk.Y)
         self.msgs=tk.Listbox(self,yscrollcommand=self.scrollbar.set,width=40)
 
-        for line in range(100):
-            self.msgs.insert(tk.END,"HI "+str(line))
         self.msgs.pack(side=tk.LEFT,fill=tk.BOTH)
         self.scrollbar.config(command=self.msgs.yview)
 
-        # self.quit = tk.Button(self, text="QUIT", fg="red",
-        #                       command=root.destroy)
-        # self.quit.pack(side="bottom")
+        self.sendbtn = tk.Button(self, text="SEND", fg="red",
+                               command=self.onSendBtnPress)
+        self.sendbtn.pack(side="bottom")
     def say_hi(self):
         print("hi there, everyone!")
     def login(self,username):
@@ -45,19 +43,18 @@ class Client(tk.Frame):
         username=input("Please Enter Your Username: ")
         self.login(username)
         self.running=True
-        self.sendThread=Thread(target=self.sendLoop)
-        self.sendThread.daemon=True
-        self.sendThread.start()
+        #self.sendThread=Thread(target=self.sendLoop)
+        #self.sendThread.daemon=True
+        #self.sendThread.start()
         self.recvThread=Thread(target=self.recvLoop)
         self.recvThread.daemon=True
         self.recvThread.start()
-        self.sendThread.join()
-        self.recvThread.join()
+        #self.sendThread.join()
 
 
-    def sendLoop(self):
-        while self.running==True:
-            msg=input()
+
+    def onSendBtnPress(self):
+            msg=self.textentry.get("1.0",tk.END)
             formatted_msg='MESSAGE,'+self.username+',"'+msg.replace('"',"&quot;")+'"'
             self.sendmessage(formatted_msg)
 
@@ -75,9 +72,9 @@ class Client(tk.Frame):
                 username=line[1]
                 message=line[2]
                 if username == self.username:
-                    print("You: "+message.replace('&quot;','"'))
+                    self.msgs.insert(tk.END,("<b>You:</b> "+message.replace('&quot;','"').replace('\n','')))
                 else:
-                    print(username+': '+message.replace('&quot;','"'))
+                    self.msgs.insert(tk.END,(username+": "+message.replace('&quot;','"').replace('\n','')))
             elif line[0] == 'ERROR':
                 message=line[2]
                 print('SERVER ERROR: '+message);
