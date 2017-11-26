@@ -47,11 +47,14 @@ class Client:
 
     def recvmessage(self):
         msg,addr=self.socket.recvfrom(2048)
-        for line in reader([msg.decode]):
-            print(line)
+        for line in reader([msg.decode()]):
             if line[0] == 'MESSAGE':
                 username=line[1]
                 message=line[2]
+                if username == self.username:
+                    print("You: "+message.replace('&quot;','"'))
+                else:
+                    print(username+': '+message.replace('&quot;','"'))
             elif line[0] == 'ERROR':
                 username=line[1]
                 self.addUser(username,clientaddress)
