@@ -27,8 +27,7 @@ class Client(tk.Frame):
         self.sendbtn = tk.Button(self, text="SEND", fg="red",
                                command=self.onSendBtnPress)
         self.sendbtn.pack(side="bottom")
-    def say_hi(self):
-        print("hi there, everyone!")
+        
     def login(self,username):
         formatted_msg='LOGIN,'+username
         self.sendmessage(formatted_msg);
