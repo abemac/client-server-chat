@@ -2,14 +2,37 @@ from socket import *
 from threading import Thread
 import time
 from csv import reader
+import tkinter as tk
 
-class Client:
-    def __init__(self,serverip,serverport):
+class Client(tk.Frame):
+    def __init__(self,serverip,serverport,master=None):
+        super().__init__(master)
+        self.pack()
+        self.createWidgets()
         self.serverip=serverip
         self.serverport=serverport
         self.socket=socket(AF_INET,SOCK_DGRAM)
         self.running=False
+    def createWidgets(self):
+        self.textentry=tk.Text(self,height=3,width=40)
+        self.textentry.pack(side="bottom")
 
+
+
+        self.scrollbar=tk.Scrollbar(self)
+        self.scrollbar.pack(side=tk.RIGHT,fill=tk.Y)
+        self.msgs=tk.Listbox(self,yscrollcommand=self.scrollbar.set,width=40)
+
+        for line in range(100):
+            self.msgs.insert(tk.END,"HI "+str(line))
+        self.msgs.pack(side=tk.LEFT,fill=tk.BOTH)
+        self.scrollbar.config(command=self.msgs.yview)
+
+        # self.quit = tk.Button(self, text="QUIT", fg="red",
+        #                       command=root.destroy)
+        # self.quit.pack(side="bottom")
+    def say_hi(self):
+        print("hi there, everyone!")
     def login(self,username):
         formatted_msg='LOGIN,'+username
         self.sendmessage(formatted_msg);
@@ -64,7 +87,9 @@ class Client:
 
 
 if __name__ == "__main__":
+    root=tk.Tk()
     ip='127.0.0.1'
     port=12000
-    client = Client(ip,port)
+    client = Client(ip,port,root)
     client.start()
+    client.mainloop()
