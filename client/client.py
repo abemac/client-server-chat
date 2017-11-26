@@ -4,15 +4,17 @@ import time
 from csv import reader
 import tkinter as tk
 
+
 class Client(tk.Frame):
-    def __init__(self,serverip,serverport,master=None):
-        super().__init__(master)
+    def __init__(self,root):
+        super().__init__(root)
         self.pack()
-        self.createWidgets()
-        self.serverip=serverip
-        self.serverport=serverport
+        self.createLoginWidgets()
+        self.serverport=12000
         self.socket=socket(AF_INET,SOCK_DGRAM)
         self.running=False
+        self.loggedin=False
+
     def createWidgets(self):
         self.textentry=tk.Text(self,height=3,width=40)
         self.textentry.pack(side="bottom")
@@ -27,18 +29,39 @@ class Client(tk.Frame):
         self.sendbtn = tk.Button(self, text="SEND", fg="red",
                                command=self.onSendBtnPress)
         self.sendbtn.pack(side="bottom")
-        
+
+    def createLoginWidgets(self):
+        self.l1=tk.Label(self, text="Server IP:")
+        self.l1.grid(row=0)
+        self.l2=tk.Label(self, text="Alias:")
+        self.l2.grid(row=1)
+        self.ip = tk.Entry(self)
+        self.ip.grid(row=0, column=1)
+        self.uname = tk.Entry(self)
+        self.uname.grid(row=1, column=1)
+        self.connectBtn = tk.Button(self, text="Connect", fg="red",command=self.onConnect)
+        self.connectBtn.grid(row=2,column=1)
+
+    def onConnect(self):
+        self.serverip = str(self.ip.get())
+        self.username = str(self.uname.get())
+        self.ip.destroy()
+        self.uname.destroy()
+        self.l1.destroy()
+        self.l2.destroy()
+        self.connectBtn.destroy()
+        self.login(self.username)
+        self.createWidgets()
+
     def login(self,username):
         formatted_msg='LOGIN,'+username
         self.sendmessage(formatted_msg);
-        self.username=username;
     def logout(self,username):
         formatted_msg='LOGOUT,'+username
         self.sendmessage(formatted_msg);
 
     def start(self):
-        username=input("Please Enter Your Username: ")
-        self.login(username)
+        #self.login(self.username)
         self.running=True
         #self.sendThread=Thread(target=self.sendLoop)
         #self.sendThread.daemon=True
@@ -52,6 +75,7 @@ class Client(tk.Frame):
 
     def onSendBtnPress(self):
             msg=self.textentry.get("1.0",tk.END)
+            self.textentry.delete("1.0",tk.END) 
             formatted_msg='MESSAGE,'+self.username+',"'+msg.replace('"',"&quot;")+'"'
             self.sendmessage(formatted_msg)
 
@@ -80,10 +104,9 @@ class Client(tk.Frame):
         self.socket.close()
 
 
+
 if __name__ == "__main__":
     root=tk.Tk()
-    ip='127.0.0.1'
-    port=12000
-    client = Client(ip,port,root)
+    client = Client(root)
     client.start()
     client.mainloop()
