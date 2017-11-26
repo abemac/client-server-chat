@@ -56,8 +56,8 @@ class Client:
                 else:
                     print(username+': '+message.replace('&quot;','"'))
             elif line[0] == 'ERROR':
-                username=line[1]
-                self.addUser(username,clientaddress)
+                message=line[2]
+                print('SERVER ERROR: '+message);
 
     def close(self):
         self.socket.close()
