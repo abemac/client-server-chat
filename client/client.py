@@ -37,6 +37,7 @@ class Client(tk.Frame):
         self.connectBtn.destroy()
         self.login(self.username)
         self.createMainWidgets()
+        self.start()
 
     def createMainWidgets(self):
         self.textentry=tk.Text(self,height=3,width=40)
@@ -101,5 +102,4 @@ class Client(tk.Frame):
 if __name__ == "__main__":
     root=tk.Tk()
     client = Client(root)
-    client.start()
     client.mainloop()
