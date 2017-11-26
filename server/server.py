@@ -10,9 +10,6 @@ class ChatServer:
         self.running=False
         print("Chat server initiated")
 
-        u=User('abraham')
-        self.users.append(u)
-
     def start(self):
         self.running=True
         while self.running==True:
@@ -23,18 +20,28 @@ class ChatServer:
         for line in reader([string]):
             print(line)
             if line[0] == 'MESSAGE':
-                user_from=line[1]
-                message=line[2].replace('&quot;','\"');
-                self.getUser(user_from).ipaddr=clientaddress #update User ip
-                m=Message(user_from,message);
+                username=line[1]
+                message=line[2]
+                self.getUser(username).addr=clientaddress #update User ip
+                m=Message(username,message)
+                self.sendMsg(m)
+            elif line[0] == 'LOGIN':
+                username=line[1]
+                self.addUser(username,clientaddress)
 
+    def sendMsg(self,m):
+        formatted_msg='MESSAGE,'+m.user_from+',"'+m.message+'"'
+        for user in self.users:
+            self.msgsocket.sendto(formatted_msg.encode(),user.addr)
 
-    def sendMsg(message):
-        print ("NI")
-
-    def addUser(self,username):
-        newuser=User('abraham')
-        self.users+=newuser
+    def addUser(self,username,addr):
+        if len(self.users) < 3:
+            print(addr)
+            newuser=User(username,addr)
+            self.users.append(newuser)
+        else:
+            formatted_msg='ERROR,chat server full';
+            self.msgsocket.sendto(formatted_msg.encode(),addr)
 
     def getUser(self,username):
         for user in self.users:

@@ -1,8 +1,8 @@
 import time
 class User:
-    def __init__(self,username,ipaddr=''):
+    def __init__(self,username,addr):
         self.username=username
-        self.ipaddr=ipaddr;
+        self.addr=addr;
 
 class Message:
     def __init__(self,user_from,message):
