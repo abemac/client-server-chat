@@ -1,8 +1,7 @@
 from socket import *
-from types import *
+from util import *
 
 class ChatServer:
-
     def __init__(self,port):
         self.socket = socket(AF_INET,SOCK_DGRAM)
         self.socket.bind(('',port))
@@ -11,11 +10,10 @@ class ChatServer:
         self.running=False
         print("Chat server initiated")
 
-
     def start(self):
         self.running=True
         while self.running==True:
-            data, clientaddress=socket.recvfrom(2048)
+            data, clientaddress=self.socket.recvfrom(2048)
             print(data.decode())
 
     def addUser(self,username,password=''):

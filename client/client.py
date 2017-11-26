@@ -9,12 +9,13 @@ class Client:
         self.socket=socket(AF_INET,SOCK_DGRAM)
 
     def login(self):
-        self.sendmessage('LOGIN: ')
+        self.sendmessage('LOGIN user=abraham password=password')
 
     def sendmessage(self,message):
-        self.socket.sendto(message.encode(),server)
+        self.socket.sendto(message.encode(),(self.serverip,self.serverport))
 
     def recvmessage(self):
+        print("not implemented")
 
     def close(self):
         self.socket.close()
@@ -23,5 +24,5 @@ class Client:
 if __name__ == "__main__":
     ip='127.0.0.1'
     port=12000
-    cleint = Client(ip,port)
-    chatserver.start()
+    client = Client(ip,port)
+    client.login()
