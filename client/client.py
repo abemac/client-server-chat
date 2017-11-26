@@ -15,21 +15,6 @@ class Client(tk.Frame):
         self.running=False
         self.loggedin=False
 
-    def createWidgets(self):
-        self.textentry=tk.Text(self,height=3,width=40)
-        self.textentry.pack(side="bottom")
-
-        self.scrollbar=tk.Scrollbar(self)
-        self.scrollbar.pack(side=tk.RIGHT,fill=tk.Y)
-        self.msgs=tk.Listbox(self,yscrollcommand=self.scrollbar.set,width=40)
-
-        self.msgs.pack(side=tk.LEFT,fill=tk.BOTH)
-        self.scrollbar.config(command=self.msgs.yview)
-
-        self.sendbtn = tk.Button(self, text="SEND", fg="red",
-                               command=self.onSendBtnPress)
-        self.sendbtn.pack(side="bottom")
-
     def createLoginWidgets(self):
         self.l1=tk.Label(self, text="Server IP:")
         self.l1.grid(row=0)
@@ -51,7 +36,27 @@ class Client(tk.Frame):
         self.l2.destroy()
         self.connectBtn.destroy()
         self.login(self.username)
-        self.createWidgets()
+        self.createMainWidgets()
+
+    def createMainWidgets(self):
+        self.textentry=tk.Text(self,height=3,width=40)
+        self.textentry.pack(side="bottom")
+
+        self.scrollbar=tk.Scrollbar(self)
+        self.scrollbar.pack(side=tk.RIGHT,fill=tk.Y)
+        self.msgs=tk.Listbox(self,yscrollcommand=self.scrollbar.set,width=40)
+
+        self.msgs.pack(side=tk.LEFT,fill=tk.BOTH)
+        self.scrollbar.config(command=self.msgs.yview)
+
+        self.sendbtn = tk.Button(self, text="SEND", fg="red",command=self.onSendBtnPress)
+        self.sendbtn.pack(side="bottom")
+
+    def onSendBtnPress(self):
+        msg=self.textentry.get("1.0",tk.END)
+        self.textentry.delete("1.0",tk.END)
+        formatted_msg='MESSAGE,'+self.username+',"'+msg.replace('"',"&quot;")+'"'
+        self.sendmessage(formatted_msg)
 
     def login(self,username):
         formatted_msg='LOGIN,'+username
@@ -61,23 +66,11 @@ class Client(tk.Frame):
         self.sendmessage(formatted_msg);
 
     def start(self):
-        #self.login(self.username)
         self.running=True
-        #self.sendThread=Thread(target=self.sendLoop)
-        #self.sendThread.daemon=True
-        #self.sendThread.start()
         self.recvThread=Thread(target=self.recvLoop)
         self.recvThread.daemon=True
         self.recvThread.start()
-        #self.sendThread.join()
 
-
-
-    def onSendBtnPress(self):
-            msg=self.textentry.get("1.0",tk.END)
-            self.textentry.delete("1.0",tk.END) 
-            formatted_msg='MESSAGE,'+self.username+',"'+msg.replace('"',"&quot;")+'"'
-            self.sendmessage(formatted_msg)
 
     def recvLoop(self):
         while self.running==True:
