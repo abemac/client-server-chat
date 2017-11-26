@@ -3,6 +3,8 @@ from threading import Thread
 import time
 from csv import reader
 import tkinter as tk
+import tkinter.filedialog as filechooser
+import os
 
 
 class Client(tk.Frame):
@@ -40,6 +42,12 @@ class Client(tk.Frame):
         self.start()
 
     def createMainWidgets(self):
+        self.sendfilebtn = tk.Button(self, text="SEND FILE", fg="red",command=self.onSendfileBtnPress)
+        self.sendfilebtn.pack(side="bottom")
+
+        self.sendbtn = tk.Button(self, text="SEND", fg="red",command=self.onSendBtnPress)
+        self.sendbtn.pack(side="bottom")
+
         self.textentry=tk.Text(self,height=3,width=40)
         self.textentry.pack(side="bottom")
 
@@ -50,14 +58,20 @@ class Client(tk.Frame):
         self.msgs.pack(side=tk.LEFT,fill=tk.BOTH)
         self.scrollbar.config(command=self.msgs.yview)
 
-        self.sendbtn = tk.Button(self, text="SEND", fg="red",command=self.onSendBtnPress)
-        self.sendbtn.pack(side="bottom")
+
 
     def onSendBtnPress(self):
         msg=self.textentry.get("1.0",tk.END)
         self.textentry.delete("1.0",tk.END)
         formatted_msg='MESSAGE,'+self.username+',"'+msg.replace('"',"&quot;")+'"'
         self.sendmessage(formatted_msg)
+    def onSendfileBtnPress(self):
+        filetosend=filechooser.askopenfilename()
+        filesize=os.path.getsize(filetosend)
+        f=open(filetosend,'rb')
+        bytes=f.read(filesize)
+        print(bytes)
+        self.sendfile(bytes)
 
     def login(self,username):
         formatted_msg='LOGIN,'+username
@@ -76,6 +90,12 @@ class Client(tk.Frame):
     def recvLoop(self):
         while self.running==True:
             self.recvmessage()
+
+    def sendfile(self,data):
+        formatted_msg='FILE,'+self.username+','
+        msgbytes=formatted_msg.encode()
+        bytestosend=b''.join([msgbytes,data])
+        self.socket.sendto(bytestosend,(self.serverip,self.serverport))
 
     def sendmessage(self,message):
         self.socket.sendto(message.encode(),(self.serverip,self.serverport))
