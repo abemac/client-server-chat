@@ -20,12 +20,13 @@ class RDTSender:
         self.timer = None # The timer object used to detect timeouts
 
         # Open rdt/rdt.conf and read in the packet_loss_percent value
-        with open("rdt.conf") as file:
-            line = file.readline()
+        f = open('client.conf')
+        for line in f:
+            tokens=line.split()
+            if tokens[0]=='PacketDropRate':
+                self.packet_loss_percent=int(tokens[1])# Convert the string to an int
+                                                       # Percent chance any one packet being sent is lost due to simulated packet loss
 
-        line = line.rstrip()                    # Strip the '\n' character
-        self.packet_loss_percent = int(line)    # Convert the string to an int
-                                                # Percent chance any one packet being sent is lost due to simulated packet loss
 
         self.socket=socket;
         print(self.socket)
@@ -41,6 +42,8 @@ class RDTSender:
     # It is used to resend the lost data/dropped data
     def timeout(self,bytes,seqnum,addr):
         self.udt_send(bytes,seqnum,addr)
+        self.timer=threading.Timer(self.timeout_amount, self.timeout,args=(bytes,0,addr));
+        self.timer.start()
 
     # Called by the application to send a packet reliably over the UDP connection
     # The sender can only send a new message if has already received the previously sent packet
