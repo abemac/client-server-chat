@@ -29,7 +29,7 @@ This project is done in Python 3, so there is no "compiling" to be done.
 Make sure python 3 is installed on the system:  
     `sudo apt-get update`  
     `sudo apt-get install python3`  
-Make sure the tkinter library for Python 2.7 is installed to run:  
+Make sure the tkinter library for Python 3 is installed to run:  
     `sudo apt-get install python3-tk`  
 
 ## Configuration Files
