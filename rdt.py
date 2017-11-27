@@ -125,7 +125,7 @@ class RDTReceiver:
                 return bytes,addr
             else:
                 self.udt_send_ACK(1,addr)
-                return self.rdt_recv()
+                return self.rdt_recv(bufsize)
         elif self.state==1:
             if sequence_number==1:
                 self.udt_send_ACK(1,addr)
@@ -133,7 +133,7 @@ class RDTReceiver:
                 return bytes,addr
             else:
                 self.udt_send_ACK(0,addr)
-                return self.rdt_recv()
+                return self.rdt_recv(bufsize)
 
     # Construct the ACK packet and send the message with UDP
     # This functions is used by the receiver to send an ACK for the just received packet
@@ -145,4 +145,4 @@ class RDTReceiver:
         else:
             # send the packet over UDP
             data=str(ack_number).encode()
-            self.socket.sendto(data,self.addr)
+            self.socket.sendto(data,addr)
