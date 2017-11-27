@@ -1,6 +1,6 @@
 import random
 from socket import *
-import time
+import threading
 
 # This file contains the code for the RDTSender and RDTReceiver classes.
 # The RDTSender class implements the rdt3.0 sender protocol from the Kurose-Ross textbook.
@@ -10,11 +10,14 @@ import time
 # The percent of packet loss is based on the percentage in the rdt.conf file.
 
 # Send packet reliably over UDP
+# The "states" of the sender are taken from Figure 3.15 in the Kurose-Ross text book
 class RDTSender:
     # Initialize all the class variables
     def __init__(self):
-        self.state = 0      # State of the FST
-        self.timeout_amount = 1    # After 1 second, a timeout will occur
+        self.sequence_number = 0    # The sequence number of the packet
+        self.state = 0              # The current position of the FST
+        self.timeout_amount = 2     # After this many seconds, a timeout will occur
+        self.timer = threading.Timer(self.timeout_amount, self.timeout) # The timer object used to detect timeouts
 
         # Open rdt/rdt.conf and read in the packet_loss_percent value
         with open("rdt.conf") as file:
@@ -24,13 +27,62 @@ class RDTSender:
         self.packet_loss_percent = int(line)    # Convert the string to an int
                                                 # Percent chance any one packet being sent is lost due to simulated packet loss
 
+    # State of the sender; Used to make the sender wait until the correct packet has been ACK
+    def increment_state(self):
+        if self.state < 3:
+            self.state  = self.state + 1
+        else:
+            self.state = 0
+
+    # Set the next sequence value to be used
+    def increment_sequence_number(self):
+        if self.sequence_number == 1:
+            self.sequence_number = 0
+        else:
+            self.sequence_number = 1
+
+    # This function is called then the timer object times out
+    # It is used to resend the lost data/dropped data
+    def timeout():
+        #DO THIS:
+        a = 1
+
+    # Called by the application to send a packet reliably over the UDP connection
+    # The sender can only send a new message if has already received the previously sent packet
     def rdt_send(self, message):
-        self.start_timer()
+        if self.state == 0 or self.state == 2:
+            self.udt_send(message)
+            self.increment_state()  # Move in the "waiting" state
+            self.timer.start()
 
-    def rdt_recv(self, message):
-        return
+    # Extract the sequence number from the message return as an int
+    def get_sequence_number(self, byte_message):
+        # The value extacted will be the ASCII representation of the number 0 or 1
+        # '0' is 48 and '1' is 49, so subtract 48 to get the actual integer value
+        return byte_message - 48
 
-    def udt_send(self, packet):
+    # Receive a message from the UDP connection
+    def rdt_recv(self):
+        #DO THIS:
+        byte_message = 0  # Receive the UDP packet
+
+        sequence_number = self.get_sequence_number(byte_message) # Extract the sequence number from the message
+        print("Received packet has sequence number: " + str(sequence_number))
+
+        if sequence_number == self.sequence_number: # The expected sequence number was received;
+            if self.is_ACK(byte_message):
+                self.timer.cancel() #Stop the timeout timer
+                print("Correct sequence number received")
+                self.increment_sequence_number()        # Change the ACK to the next expected sequence number
+                return byte_message                     # Return the message to the application
+            else:
+                print("Packet is not an ACK (len=" + str(len(byte_message)) + ")")
+                return ""
+        else:
+            print("Wrong sequence number")
+            return ""                   # Return nothing if the packet is corrupt or out of order
+
+    def udt_send(self, message):
 
         # Simulate packet loss
         if random.randint(1, 100) <= self.packet_loss_percent:
@@ -39,11 +91,13 @@ class RDTSender:
             # send the packet over UDP
             return
 
-    def is_ACK(self):
-        return
-
-    def corrupt(self):
-        return False
+    # Checks if the received message is an ACK message.
+    # An ACK message will only have 1 value in it, i.e. have a length of 1
+    def is_ACK(self, byte_message):
+        if len(byte_message) == 1:
+            return True
+        else:
+            return False
 
 # Receiver packets reliably over UDP
 class RDTReceiver:
@@ -65,23 +119,23 @@ class RDTReceiver:
             self.ACK = 1
 
     # Extract the sequence number from the message return as an int
-    def get_sequence_number(self, byte_message)
+    def get_sequence_number(self, byte_message):
         # The value extacted will be the ASCII representation of the number 0 or 1
         # '0' is 48 and '1' is 49, so subtract 48 to get the actual integer value
         return byte_message - 48
 
     def rdt_recv(self):
         #DO THIS:
-        byte_message = received_packet  # Receive the UDP packet
+        byte_message = 0    # Receive the UDP packet
 
         sequence_number = self.get_sequence_number(byte_message) # Extract the sequence number from the message
-        print("Packet has sequence number: " + str(sequence_number))
+        print("Received packet has sequence number: " + str(sequence_number))
 
         if sequence_number == self.ACK: # The expected sequence number was received;
             print("Sending ACK for " + str(self.ACK))
             self.udt_send(False)        # Send an ACK for the received packet
             self.increment_ACK()        # Change the ACK to the next expected sequence number
-            return message              # Return the message to the application
+            return byte_message         # Return the message to the application
         else:
             print("Re-sending ACK for " + str(self.ACK))
             self.udt_send(True)         # Resend the ACK of the previous packet
@@ -96,10 +150,10 @@ class RDTReceiver:
         # Place the appropriate ACK in the message, based on whether it is a retransmission or not
         if resend:
             self.increment_ACK()    # Get the previous ACK value
-            message = str(self.ACK) + message
+            raw_message = str(self.ACK) + raw_message
             self.increment_ACK()    # Restore the current ACK value
         else:   
-            message = str(self.ACK) + message
+            raw_message = str(self.ACK) + raw_message
 
         # Simulate packet loss
         if random.randint(1, 100) <= self.packet_loss_percent:
