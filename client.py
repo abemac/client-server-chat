@@ -1,13 +1,12 @@
 from socket import *
 from threading import Thread
-import time
 import tkinter as tk
 import tkinter.filedialog as filechooser
 import tkinter.messagebox as dialog
+from rdt import *
 import os
 import ntpath
 import sys
-import signal
 
 # This file contains the code for the Client class. The class contains functions that create the user interface,
 # allow a user to login or out, and manage the sending and receiving of files and messages. This program is multi-threaded
@@ -35,6 +34,8 @@ class Client(tk.Frame):
 
         self.createLoginWidgets()
         self.socket=socket(AF_INET,SOCK_DGRAM)
+        self.rdtsender=RDTSender(self.socket)
+        self.rdtreceiver=RDTReceiver(self.socket)
         self.running=False      # Is the client program running and ready to send/receive?
         self.loggedin=False     # Has a user logged in?
         self.filebuf=bytearray()
@@ -151,10 +152,10 @@ class Client(tk.Frame):
         self.sendbytes(formatted_msg.encode())
 
     def sendbytes(self,bytes):
-        self.socket.sendto(bytes,(self.serverip,self.serverport))
+        self.rdtsender.rdt_send(bytes,(self.serverip,self.serverport))
 
     def recvmessage(self):
-        bytes,addr=self.socket.recvfrom(65536)
+        bytes,addr=self.rdtreceiver.rdt_recv(65536)
         i=bytes.find(b' ',0)
         action=bytes[0:i].decode()
         if action == 'MESSAGE':

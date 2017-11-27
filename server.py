@@ -3,6 +3,7 @@ from util import *
 from threading import Thread
 import sys
 import signal
+from rdt import *
 
 # This file contains the code for the ChatServer class. The class contains functions that manage the current user,
 # receive messages and file from users, and send the messages to every other user, and send the file to the correct user.
@@ -21,6 +22,8 @@ class ChatServer:
         self.users=[]       # list of users of type User
         self.files=[]       #buffer of files, of type File
         signal.signal(signal.SIGINT,self.siginthandler)
+        self.rdtsender=RDTSender(self.socket)
+        self.rdtreceiver=RDTReceiver(self.socket)
         self.start()
 
 
@@ -59,7 +62,7 @@ class ChatServer:
 
     def mainloop(self):
         while True:
-            bytes, clientaddress=self.socket.recvfrom(65536)
+            bytes, clientaddress=self.rdtreceiver.rdt_recv(65536)
             self.handleMessage(bytes,clientaddress)
 
     def handleMessage(self,bytes,clientaddress):
@@ -118,7 +121,7 @@ class ChatServer:
             self.sendbytes(formatted_msg.encode(),user.addr)
 
     def sendbytes(self,bytes,addr):
-        self.socket.sendto(bytes,addr)
+        self.rdtsender.rdt_send(bytes,addr)
 
     def sendfile(self,f,user):
         for i in range(0,len(f.bytes),10000):
