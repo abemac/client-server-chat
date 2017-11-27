@@ -20,6 +20,7 @@ class Client(tk.Frame):
         self.socket=socket(AF_INET,SOCK_DGRAM)
         self.running=False      # Is the client program running and ready to send/receive?
         self.loggedin=False     # Has a user logged in?
+        self.filebuf=bytearray()
 
     def createLoginWidgets(self):
         self.l1=tk.Label(self, text="Server IP:")
@@ -71,14 +72,14 @@ class Client(tk.Frame):
 
     def onSendfileBtnPress(self):
         filetosend=filechooser.askopenfilename()
-        try:
-            filesize=os.path.getsize(filetosend)
-            filename=ntpath.basename(filetosend).replace(' ','-')
-            f=open(filetosend,'rb')
-            bytes=f.read(filesize)
-            self.sendfile(bytes,filename)
-        except Exception:
-            print("File not found or too big")
+        #try:
+        filesize=os.path.getsize(filetosend)
+        filename=ntpath.basename(filetosend).replace(' ','-')
+        f=open(filetosend,'rb')
+        bytes=f.read(filesize)
+        self.sendfile(bytes,filename)
+        #except Exception:
+            #print("File not found or too big")
 
     def login(self,username):
         formatted_msg='LOGIN '+username
@@ -99,10 +100,23 @@ class Client(tk.Frame):
             self.recvmessage()
 
     def sendfile(self,data,filename):
-        formatted_msg='FILE '+self.username+' '+filename+' '
-        msgbytes=formatted_msg.encode()
-        bytestosend=b''.join([msgbytes,data])
-        self.socket.sendto(bytestosend,(self.serverip,self.serverport))
+        for i in range(0,len(data),50000):
+            lastsegment=(i+50000) >= len(data)
+            if lastsegment==True:
+                formatted_msg='FILE LAST '+self.username+' '+filename+' '
+                msgbytes=formatted_msg.encode()
+                bytestosend=b''.join([msgbytes,data[i:]])
+                self.socket.sendto(bytestosend,(self.serverip,self.serverport))
+            elif i==0:#First segment
+                formatted_msg='FILE FIRST '+self.username+' '+filename+' '
+                msgbytes=formatted_msg.encode()
+                bytestosend=b''.join([msgbytes,data[i:i+50000]])
+                self.socket.sendto(bytestosend,(self.serverip,self.serverport))
+            else:
+                formatted_msg='FILE PART '+self.username+' '+filename+' '
+                msgbytes=formatted_msg.encode()
+                bytestosend=b''.join([msgbytes,data[i:i+50000]])
+                self.socket.sendto(bytestosend,(self.serverip,self.serverport))
 
     def reqfile(self,fileid):
         formatted_msg='GET '+fileid+' '+self.username
@@ -112,7 +126,7 @@ class Client(tk.Frame):
         self.socket.sendto(message.encode(),(self.serverip,self.serverport))
 
     def recvmessage(self):
-        bytes,addr=self.socket.recvfrom(2048)
+        bytes,addr=self.socket.recvfrom(65536)
         i=bytes.find(b' ',0)
         action=bytes[0:i].decode()
         if action == 'MESSAGE':
@@ -141,13 +155,23 @@ class Client(tk.Frame):
         elif action == 'FILE':
             lasti=i
             i=bytes.find(b' ',lasti+1)
+            part=bytes[lasti+1:i].decode()
+            lasti=i
+            i=bytes.find(b' ',lasti+1)
             filename=bytes[lasti+1:i].decode()
             filedata=bytes[i+1:]
-            saveloc=filechooser.asksaveasfilename(initialfile=filename)
-            f=open(saveloc,'wb')
-            f.write(filedata)
-            f.close()
-            dialog.showinfo('File Transfer','File saved to '+saveloc)
+
+            if part=='FIRST':
+                self.filebuf=filedata
+            else:
+                self.filebuf=b''.join([self.filebuf,filedata]) #add on to file data
+            if part=='LAST':
+                saveloc=filechooser.asksaveasfilename(initialfile=filename)
+                f=open(saveloc,'wb')
+                f.write(self.filebuf)
+                f.close()
+                self.filebuf=bytearray()
+                dialog.showinfo('File Transfer','File saved to '+saveloc)
 
 
     def close(self):

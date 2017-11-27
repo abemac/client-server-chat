@@ -17,7 +17,7 @@ class ChatServer:
     def start(self):
         self.running=True
         while self.running==True:
-            bytes, clientaddress=self.socket.recvfrom(2048)
+            bytes, clientaddress=self.socket.recvfrom(65536)
             self.handleMessage(bytes,clientaddress)
 
     def handleMessage(self,bytes,clientaddress):
@@ -39,25 +39,32 @@ class ChatServer:
         elif action == 'FILE':
             lasti=i
             i=bytes.find(b' ',lasti+1)
+            part=bytes[lasti+1:i].decode()
+            lasti=i
+            i=bytes.find(b' ',lasti+1)
             username=bytes[lasti+1:i].decode()
             self.getUser(username).addr=clientaddress # Update User ip
             lasti=i
             i=bytes.find(b' ',lasti+1)
             filename=bytes[lasti+1:i].decode()
             filedata=bytes[i+1:]
-            f=File(filename,username,filedata)
-            self.files.append(f)
-            self.askAboutFile(f)
+            f=self.getFileByName(filename)
+            if f == None:
+                f=File(filename,username,filedata)
+                self.files.append(f)
+            else:
+                f.bytes=b''.join([f.bytes,filedata]) #add on to file data
+            if part=='LAST':
+                self.askAboutFile(f)
         elif action == 'GET':
             lasti=i
             i=bytes.find(b' ',lasti+1)
             fileid=bytes[lasti+1:i].decode()
             username=bytes[i+1:].decode()
             self.getUser(username).addr=clientaddress # Update User ip
-            f=self.getFile(fileid)
+            f=self.getFileById(fileid)
             print(f.name)
             self.sendfile(f,self.getUser(username))
-
 
     def sendMsg(self,m):
         formatted_msg='MESSAGE '+m.user_from+' '+m.message
@@ -65,10 +72,23 @@ class ChatServer:
             self.socket.sendto(formatted_msg.encode(),user.addr)
 
     def sendfile(self,f,user):
-        formatted_msg='FILE '+f.name+' '
-        msgbytes=formatted_msg.encode()
-        bytestosend=b''.join([msgbytes,f.bytes])
-        self.socket.sendto(bytestosend,user.addr)
+        for i in range(0,len(f.bytes),50000):
+            lastsegment=(i+50000) >= len(f.bytes)
+            if lastsegment==True:
+                formatted_msg='FILE LAST '+f.name+' '
+                msgbytes=formatted_msg.encode()
+                bytestosend=b''.join([msgbytes,f.bytes])
+                self.socket.sendto(bytestosend,user.addr)
+            elif i==0:#First segment
+                formatted_msg='FILE FIRST '+f.name+' '
+                msgbytes=formatted_msg.encode()
+                bytestosend=b''.join([msgbytes,f.bytes])
+                self.socket.sendto(bytestosend,user.addr)
+            else:
+                formatted_msg='FILE PART '+f.name+' '
+                msgbytes=formatted_msg.encode()
+                bytestosend=b''.join([msgbytes,f.bytes])
+                self.socket.sendto(bytestosend,user.addr)
 
 
     def askAboutFile(self,f):
@@ -92,11 +112,18 @@ class ChatServer:
                 return user
         return None
 
-    def getFile(self,id):
+    def getFileById(self,id):
         for file in self.files:
             if(file.id == id):
                 return file
         return None
+
+    def getFileByName(self,name):
+        for file in self.files:
+            if(file.name == name):
+                return file
+        return None
+
 
 if __name__ == "__main__":
     port=12000

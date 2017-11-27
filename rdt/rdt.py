@@ -24,7 +24,7 @@ class RDTSender:
         line = line.rstrip()                    # Strip the '\n' character
         self.packet_loss_percent = int(line)    # Convert the string to an int
                                                 # Percent chance any one packet being sent is lost due to simulated packet loss
-        
+
     def rdt_send(self, message):
         self.start_timer()
 
@@ -67,7 +67,7 @@ class RDTSender:
     #             return
 
     #         elif self.state == 1:
-    #             return 
+    #             return
 
     #         elif self.state == 2:
     #             return
@@ -87,7 +87,7 @@ class RDTReceiver:
         line = line.rstrip()                    # Strip the '\n' character
         self.packet_loss_percent = int(line)    # Convert the string to an int
                                                 # Percent chance any one packet being sent is lost due to simulated packet loss
-    
+
     # Progresses the FST state to the next value
     def increment_state(self):
         if self.state == 1:
@@ -141,5 +141,3 @@ class RDTReceiver:
             return False    # If the 16 bit checksum is all 1s, the packet is not corrupt
         else:
             return True     # The packet is corrupt
-
-    
