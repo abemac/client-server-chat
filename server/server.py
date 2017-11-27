@@ -1,6 +1,8 @@
 from socket import *
 from util import *
 from threading import Thread
+import sys
+import signal
 # This file contains the code for the ChatServer class. The class contains functions that manage the current user,
 # receive messages and file from users, and send the messages to every other user, and send the file to the correct user.
 # This program is multi-threaded to allow the simultaneous sending and receiving of data.
@@ -16,31 +18,46 @@ class ChatServer:
         self.socket = socket(AF_INET,SOCK_DGRAM)
         self.socket.bind(('',self.port))
         self.users=[]       # list of users of type User
-        self.running=False  # Is the sever running and ready to send/receive data?
         self.files=[]       #buffer of files, of type File
+        signal.signal(signal.SIGINT,self.siginthandler)
         self.start()
+
 
     def start(self):
         self.mainthread=Thread(target=self.mainloop)
+        self.mainthread.daemon=True
         self.mainthread.start()
         self.adminloop()
         self.mainthread.join()
+
     def adminloop(self):
-        while self.running==True:
-            cmd=input('> ')
+        while True:
+            cmd=''
+            try:
+                cmd=input('> ')
+            except EOFError:
+                print("")
+                self.close()
+
             if cmd=='help':
                 print ("""
-                help
-
-
+    users - show current users
+    files - show buffered files
+    exit - stop the program
+    help - show this help
                 """)
             elif cmd == 'users':
                 for user in self.users:
                     print (user)
 
+            elif cmd == 'files':
+                for file in self.files:
+                    print (file.name)
+            elif cmd == 'exit':
+                self.close()
+
     def mainloop(self):
-        self.running=True
-        while self.running==True:
+        while True:
             bytes, clientaddress=self.socket.recvfrom(65536)
             self.handleMessage(bytes,clientaddress)
 
@@ -59,6 +76,9 @@ class ChatServer:
         elif action == 'LOGIN':
             username=bytes[i+1:].decode()
             self.addUser(username,clientaddress)
+        elif action == 'LOGOUT':
+            username=bytes[i+1:].decode()
+            self.users.remove(self.getUser(username))
         elif action == 'FILE':
             lasti=i
             i=bytes.find(b' ',lasti+1)
@@ -145,6 +165,12 @@ class ChatServer:
                 return file
         return None
 
+    def close(self):
+        self.socket.close()
+        sys.exit(0)
+    def siginthandler(self,signum,frame):
+        print("")
+        self.close()
 
 if __name__ == "__main__":
     chatserver = ChatServer()

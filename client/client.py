@@ -6,6 +6,8 @@ import tkinter.filedialog as filechooser
 import tkinter.messagebox as dialog
 import os
 import ntpath
+import sys
+import signal
 
 # This file contains the code for the Client class. The class contains functions that create the user interface,
 # allow a user to login or out, and manage the sending and receiving of files and messages. This program is multi-threaded
@@ -14,11 +16,13 @@ import ntpath
 class Client(tk.Frame):
     def __init__(self,root):
         super().__init__(root)
+        root.protocol("WM_DELETE_WINDOW",self.close)
         self.pack()
         self.serverip = ""
         self.username = ""
         self.serverport=""
-
+        if sys.argv[1]!="":
+            self.username=sys.argv[1]
         f = open('client.conf')
         for line in f:
             tokens=line.split()
@@ -116,6 +120,7 @@ class Client(tk.Frame):
     def start(self):
         self.running=True
         self.recvThread=Thread(target=self.recvLoop)
+        self.recvThread.daemon=True
         self.recvThread.start()
 
     def recvLoop(self):
@@ -200,8 +205,10 @@ class Client(tk.Frame):
                 self.filebuf=bytearray()
 
     def close(self):
+        self.logout(self.username)
         self.socket.close()
-
+        sys.exit(0)
+        
 if __name__ == "__main__":
     root=tk.Tk()
     client = Client(root)
