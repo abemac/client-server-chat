@@ -25,12 +25,12 @@ Programming Assignment- Project 2: Client-Server Chat Program
     Helper functions used by server.py  
 
 ## Compilation instructions
-This project is done in Python 2.7, so there is no "compiling" to be done.  
-Make sure python 2.7 is installed on the system:  
+This project is done in Python 3, so there is no "compiling" to be done.  
+Make sure python 3 is installed on the system:  
     `sudo apt-get update`  
-    `sudo apt-get install python2.7`  
+    `sudo apt-get install python3`  
 Make sure the tkinter library for Python 2.7 is installed to run:  
-    `sudo apt-get install python-tk`  
+    `sudo apt-get install python3-tk`  
 
 ## Configuration Files
 **rdt/rdt.conf**  
@@ -55,4 +55,4 @@ To run a client, go to the main folder (AbrahamMcIlvaine-BenjaminSteenkamer) fro
    ` python client/client.py`  
 The client will appear and you will be able to login; No command line arguments are needed.
 If you want to add another, open up another command line and start another instance of the client.
-The chat program only supports up to 3 simultaneous users, so only there client programs should be running at once.  
+The chat program only supports up to 3 simultaneous users, so only three client programs should be running at once.  

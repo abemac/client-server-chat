@@ -1,6 +1,5 @@
 from socket import *
 from util import *
-from csv import reader
 
 # This file contains the code for the ChatServer class. The class contains functions that manage the current user,
 # receive messages and file from users, and send the messages to every other user, and send the file to the correct user.
@@ -17,24 +16,27 @@ class ChatServer:
     def start(self):
         self.running=True
         while self.running==True:
-            message, clientaddress=self.msgsocket.recvfrom(2048)
-            self.handleMessage(message.decode(),clientaddress)
+            bytes, clientaddress=self.msgsocket.recvfrom(2048)
+            self.handleMessage(bytes,clientaddress)
 
-    def handleMessage(self,string,clientaddress):
-        for line in reader([string]):
-            print(line)
-            if line[0] == 'MESSAGE':
-                username=line[1]
-                message=line[2]
-                self.getUser(username).addr=clientaddress # Update User ip
-                m=Message(username,message)
-                self.sendMsg(m)
-            elif line[0] == 'LOGIN':
-                username=line[1]
-                self.addUser(username,clientaddress)
+    def handleMessage(self,bytes,clientaddress):
+        print(bytes)
+        i=bytes.find(b' ',0)
+        action=bytes[0:i].decode()
+        if action == 'MESSAGE':
+            lasti=i
+            i=bytes.find(b' ',lasti+1)
+            username=bytes[lasti+1:i].decode()
+            message=bytes[i+1:].decode()
+            self.getUser(username).addr=clientaddress # Update User ip
+            m=Message(username,message)
+            self.sendMsg(m)
+        elif action == 'LOGIN':
+            username=bytes[i+1:].decode()
+            self.addUser(username,clientaddress)
 
     def sendMsg(self,m):
-        formatted_msg='MESSAGE,'+m.user_from+',"'+m.message+'"'
+        formatted_msg='MESSAGE '+m.user_from+' '+m.message
         for user in self.users:
             self.msgsocket.sendto(formatted_msg.encode(),user.addr)
 
@@ -44,7 +46,7 @@ class ChatServer:
             newuser=User(username,addr)
             self.users.append(newuser)
         else:
-            formatted_msg='ERROR,chat server full';
+            formatted_msg='ERROR chat server full';
             self.msgsocket.sendto(formatted_msg.encode(),addr)
 
     def getUser(self,username):

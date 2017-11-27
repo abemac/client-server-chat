@@ -1,7 +1,6 @@
 from socket import *
 from threading import Thread
 import time
-from csv import reader
 import tkinter as tk
 import tkinter.filedialog as filechooser
 import os
@@ -64,23 +63,25 @@ class Client(tk.Frame):
     def onSendBtnPress(self):
         msg=self.textentry.get("1.0",tk.END)
         self.textentry.delete("1.0",tk.END)
-        formatted_msg='MESSAGE,'+self.username+',"'+msg.replace('"',"&quot;")+'"'
+        formatted_msg='MESSAGE '+self.username+' '+msg
         self.sendmessage(formatted_msg)
 
     def onSendfileBtnPress(self):
         filetosend=filechooser.askopenfilename()
-        filesize=os.path.getsize(filetosend)
-        f=open(filetosend,'rb')
-        bytes=f.read(filesize)
-        print(bytes)
-        self.sendfile(bytes)
+        try:
+            filesize=os.path.getsize(filetosend)
+            f=open(filetosend,'rb')
+            bytes=f.read(filesize)
+            self.sendfile(bytes)
+        except FileNotFoundError:
+            print("File not found")
 
     def login(self,username):
-        formatted_msg='LOGIN,'+username
+        formatted_msg='LOGIN '+username
         self.sendmessage(formatted_msg)
 
     def logout(self,username):
-        formatted_msg='LOGOUT,'+username
+        formatted_msg='LOGOUT '+username
         self.sendmessage(formatted_msg)
 
     def start(self):
@@ -94,27 +95,32 @@ class Client(tk.Frame):
             self.recvmessage()
 
     def sendfile(self,data):
-        formatted_msg='FILE,'+self.username+','
+        formatted_msg='FILE '+self.username+','
         msgbytes=formatted_msg.encode()
         bytestosend=b''.join([msgbytes,data])
+        print(bytestosend)
         self.socket.sendto(bytestosend,(self.serverip,self.serverport))
 
     def sendmessage(self,message):
         self.socket.sendto(message.encode(),(self.serverip,self.serverport))
 
     def recvmessage(self):
-        msg,addr=self.socket.recvfrom(2048)
-        for line in reader([msg.decode()]):
-            if line[0] == 'MESSAGE':
-                username=line[1]
-                message=line[2]
-                if username == self.username:
-                    self.msgs.insert(tk.END,("You: "+message.replace('&quot;','"').replace('\n','')))
-                else:
-                    self.msgs.insert(tk.END,(username+": "+message.replace('&quot;','"').replace('\n','')))
-            elif line[0] == 'ERROR':
-                message=line[2]
-                print('SERVER ERROR: '+message);
+        bytes,addr=self.socket.recvfrom(2048)
+        i=bytes.find(b' ',0)
+        action=bytes[0:i].decode()
+        if action == 'MESSAGE':
+            lasti=i
+            i=bytes.find(b' ',lasti+1)
+            username=bytes[lasti+1:i].decode()
+            message=bytes[i+1:].decode()
+            if username == self.username:
+                self.msgs.insert(tk.END,("You: "+message.replace('\n','')))
+            else:
+                self.msgs.insert(tk.END,(username+": "+message.replace('\n','')))
+        elif action == 'ERROR':
+            msg=bytes[i+1:].decode()
+            print('SERVER ERROR: '+message);
+
 
     def close(self):
         self.socket.close()
