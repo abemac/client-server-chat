@@ -40,11 +40,11 @@ An example of the file contents:
 `DefaultServer 127.0.0.1`  
 `DefaultServerPort 12057`  
 **rdt.conf**  
-This file contains 1 integer (and nothing else) that represents the percent chance a packet will be lost because of simulated packet loss.
+This file contains 1 line that starts with "PacketDropRate", which is followed by an integer. This integer represents the percent chance a packet will be lost because of simulated packet loss.
 The integer value must be between 0 and 100, inclusive, and it must be set before the client or server program is run.
-For example, if the number in the file is 20, then there is a 20% chance that any one packet sent by the client or server will be dropped.  
+For example, if the integer in the file is 20, then there is a 20% chance that any one packet sent by the client or server will be dropped.  
 An example of the file contents:  
-`20`  
+`PacketDropRate 20`  
 **server.conf**  
 This file contains 1 line that starts with "Port " and is followed by a port number. This is the default port number the server will open a UDP connection on when it is started. 
 The client and server ports must match for the connection to work.  
