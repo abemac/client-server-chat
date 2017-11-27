@@ -14,6 +14,7 @@ import threading
 class RDTSender:
     # Initialize all the class variables
     def __init__(self,socket):
+
         self.state = 0              # The current position of the FST
         self.timeout_amount = 2     # After this many seconds, a timeout will occur
         self.timer = None # The timer object used to detect timeouts
@@ -27,7 +28,7 @@ class RDTSender:
                                                 # Percent chance any one packet being sent is lost due to simulated packet loss
 
         self.socket=socket;
-
+        print(self.socket)
 
     # State of the sender; Used to make the sender wait until the correct packet has been ACK
     def increment_state(self):

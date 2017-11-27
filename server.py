@@ -19,6 +19,7 @@ class ChatServer:
 
         self.socket = socket(AF_INET,SOCK_DGRAM)
         self.socket.bind(('',self.port))
+        print(self.socket)
         self.users=[]       # list of users of type User
         self.files=[]       #buffer of files, of type File
         signal.signal(signal.SIGINT,self.siginthandler)
