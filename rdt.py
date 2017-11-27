@@ -25,7 +25,7 @@ class RDTSender:
             tokens=line.split()
             if tokens[0]=='PacketDropRate':
                 self.packet_loss_percent=int(tokens[1])# Convert the string to an int
-                                                       # Percent chance any one packet being sent is lost due to simulated packet loss
+                print(self.packet_loss_percent)                               # Percent chance any one packet being sent is lost due to simulated packet loss
 
 
         self.socket=socket;
@@ -105,13 +105,12 @@ class RDTSender:
 class RDTReceiver:
     def __init__(self,socket):
 
-        # Open rdt/rdt.conf and read in the packet_loss_percent value
-        with open("rdt.conf") as file:
-            line = file.readline()
-
-        line = line.rstrip()                    # Strip the '\n' character
-        self.packet_loss_percent = int(line)    # Convert the string to an int
-                                                # Percent chance any one packet being sent is lost due to simulated packet loss
+        f = open('client.conf')
+        for line in f:
+            tokens=line.split()
+            if tokens[0]=='PacketDropRate':
+                self.packet_loss_percent=int(tokens[1])# Convert the string to an int
+                print(self.packet_loss_percent)                               # Percent chance any one packet being sent is lost due to simulated packet loss
 
         self.socket=socket
         self.state=0
