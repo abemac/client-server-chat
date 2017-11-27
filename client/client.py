@@ -17,8 +17,8 @@ class Client(tk.Frame):
         self.createLoginWidgets()
         self.serverport=12000
         self.socket=socket(AF_INET,SOCK_DGRAM)
-        self.running=False
-        self.loggedin=False
+        self.running=False      # Is the client program running and ready to send/receive?
+        self.loggedin=False     # Has a user logged in?
 
     def createLoginWidgets(self):
         self.l1=tk.Label(self, text="Server IP:")

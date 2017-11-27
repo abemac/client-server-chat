@@ -10,8 +10,8 @@ class ChatServer:
     def __init__(self,port):
         self.msgsocket = socket(AF_INET,SOCK_DGRAM)
         self.msgsocket.bind(('',port))
-        self.users=[] #list of users of type User
-        self.running=False
+        self.users=[]       # list of users of type User
+        self.running=False  # Is the sever running and ready to send/receive data?
         print("Chat server initiated")
 
     def start(self):
@@ -26,7 +26,7 @@ class ChatServer:
             if line[0] == 'MESSAGE':
                 username=line[1]
                 message=line[2]
-                self.getUser(username).addr=clientaddress #update User ip
+                self.getUser(username).addr=clientaddress # Update User ip
                 m=Message(username,message)
                 self.sendMsg(m)
             elif line[0] == 'LOGIN':
