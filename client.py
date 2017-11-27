@@ -21,7 +21,7 @@ class Client(tk.Frame):
         self.serverip = ""
         self.username = ""
         self.serverport=""
-        if sys.argv[1]!="":
+        if len(sys.argv)==2:
             self.username=sys.argv[1]
         f = open('client.conf')
         for line in f:
@@ -96,7 +96,7 @@ class Client(tk.Frame):
         msg=self.textentry.get("1.0",tk.END)
         self.textentry.delete("1.0",tk.END)
         formatted_msg='MESSAGE '+self.username+' '+msg
-        self.sendmessage(formatted_msg)
+        self.sendbytes(formatted_msg.encode())
 
     def onSendfileBtnPress(self):
         filetosend=filechooser.askopenfilename()
@@ -111,11 +111,11 @@ class Client(tk.Frame):
 
     def login(self,username):
         formatted_msg='LOGIN '+username
-        self.sendmessage(formatted_msg)
+        self.sendbytes(formatted_msg.encode())
 
     def logout(self,username):
         formatted_msg='LOGOUT '+username
-        self.sendmessage(formatted_msg)
+        self.sendbytes(formatted_msg.encode())
 
     def start(self):
         self.running=True
@@ -134,24 +134,24 @@ class Client(tk.Frame):
                 formatted_msg='FILE LAST '+self.username+' '+filename+' '
                 msgbytes=formatted_msg.encode()
                 bytestosend=b''.join([msgbytes,data[i:]])
-                self.socket.sendto(bytestosend,(self.serverip,self.serverport))
+                self.sendbytes(bytestosend)
             elif i==0:#First segment
                 formatted_msg='FILE FIRST '+self.username+' '+filename+' '
                 msgbytes=formatted_msg.encode()
                 bytestosend=b''.join([msgbytes,data[i:i+10000]])
-                self.socket.sendto(bytestosend,(self.serverip,self.serverport))
+                self.sendbytes(bytestosend)
             else:
                 formatted_msg='FILE PART '+self.username+' '+filename+' '
                 msgbytes=formatted_msg.encode()
                 bytestosend=b''.join([msgbytes,data[i:i+10000]])
-                self.socket.sendto(bytestosend,(self.serverip,self.serverport))
+                self.sendbytes(bytestosend)
 
     def reqfile(self,fileid):
         formatted_msg='GET '+fileid+' '+self.username
-        self.sendmessage(formatted_msg)
+        self.sendbytes(formatted_msg.encode())
 
-    def sendmessage(self,message):
-        self.socket.sendto(message.encode(),(self.serverip,self.serverport))
+    def sendbytes(self,bytes):
+        self.socket.sendto(bytes,(self.serverip,self.serverport))
 
     def recvmessage(self):
         bytes,addr=self.socket.recvfrom(65536)
@@ -163,9 +163,9 @@ class Client(tk.Frame):
             username=bytes[lasti+1:i].decode()
             message=bytes[i+1:].decode()
             if username == self.username:
-                self.msgs.insert(tk.END,("You: "+message.replace('\n','')))
+                self.msgs.insert(tk.END,("You: "+message.replace('\n',' ')))
             else:
-                self.msgs.insert(tk.END,(username+": "+message.replace('\n','')))
+                self.msgs.insert(tk.END,(username+": "+message.replace('\n',' ')))
         elif action == 'ERROR':
             msg=bytes[i+1:].decode()
             print('SERVER ERROR: '+message);
@@ -208,7 +208,7 @@ class Client(tk.Frame):
         self.logout(self.username)
         self.socket.close()
         sys.exit(0)
-        
+
 if __name__ == "__main__":
     root=tk.Tk()
     client = Client(root)

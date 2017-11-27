@@ -13,7 +13,7 @@ import threading
 # The "states" of the sender are taken from Figure 3.15 in the Kurose-Ross text book
 class RDTSender:
     # Initialize all the class variables
-    def __init__(self,ipaddress,port):
+    def __init__(self,socket,addr):
         self.state = 0              # The current position of the FST
         self.timeout_amount = 2     # After this many seconds, a timeout will occur
         self.timer = None # The timer object used to detect timeouts
@@ -26,10 +26,8 @@ class RDTSender:
         self.packet_loss_percent = int(line)    # Convert the string to an int
                                                 # Percent chance any one packet being sent is lost due to simulated packet loss
 
-        self.port=port
-        self.ipaddress=ipaddress
-        self.socket = socket(AF_INET,SOCK_DGRAM)
-        self.socket.bind(('',self.port))
+        self.addr=addr
+        self.socket=socket;
 
 
     # State of the sender; Used to make the sender wait until the correct packet has been ACK
@@ -90,7 +88,7 @@ class RDTSender:
             # send the packet over UDP
             seq_byte=str(seq_number).encode()
             data=b''.join([seq_byte,bytes])
-            self.socket.sendto(data,(self.ipaddress,self.port))
+            self.socket.sendto(data,self.addr)
 
     # Checks if the received message is an ACK message.
     # An ACK message will only have 1 value in it, i.e. have a length of 1
@@ -102,7 +100,7 @@ class RDTSender:
 
 # Receiver packets reliably over UDP
 class RDTReceiver:
-    def __init__(self,ipaddress,port):
+    def __init__(self,socket,addr):
 
         # Open rdt/rdt.conf and read in the packet_loss_percent value
         with open("rdt.conf") as file:
@@ -112,11 +110,8 @@ class RDTReceiver:
         self.packet_loss_percent = int(line)    # Convert the string to an int
                                                 # Percent chance any one packet being sent is lost due to simulated packet loss
 
-        self.serverport=port
-        self.serverip=ipaddress
-        self.socket = socket(AF_INET,SOCK_DGRAM)
-        self.socket.bind(('',self.port))
-
+        self.socket=socket
+        self.addr=addr
         self.state=0
 
     def rdt_recv(self):
@@ -152,4 +147,4 @@ class RDTReceiver:
         else:
             # send the packet over UDP
             data=str(ack_number).encode()
-            self.socket.sendto(data,(self.serverip,self.serverport))
+            self.socket.sendto(data,self.addr)

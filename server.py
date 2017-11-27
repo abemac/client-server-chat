@@ -3,6 +3,7 @@ from util import *
 from threading import Thread
 import sys
 import signal
+
 # This file contains the code for the ChatServer class. The class contains functions that manage the current user,
 # receive messages and file from users, and send the messages to every other user, and send the file to the correct user.
 # This program is multi-threaded to allow the simultaneous sending and receiving of data.
@@ -78,7 +79,10 @@ class ChatServer:
             self.addUser(username,clientaddress)
         elif action == 'LOGOUT':
             username=bytes[i+1:].decode()
-            self.users.remove(self.getUser(username))
+            try:
+                self.users.remove(self.getUser(username))
+            except Exception:
+                print("Error logging out user")
         elif action == 'FILE':
             lasti=i
             i=bytes.find(b' ',lasti+1)
@@ -111,7 +115,10 @@ class ChatServer:
     def sendMsg(self,m):
         formatted_msg='MESSAGE '+m.user_from+' '+m.message
         for user in self.users:
-            self.socket.sendto(formatted_msg.encode(),user.addr)
+            self.sendbytes(formatted_msg.encode(),user.addr)
+
+    def sendbytes(self,bytes,addr):
+        self.socket.sendto(bytes,addr)
 
     def sendfile(self,f,user):
         for i in range(0,len(f.bytes),10000):
@@ -120,24 +127,24 @@ class ChatServer:
                 formatted_msg='FILE LAST '+f.name+' '
                 msgbytes=formatted_msg.encode()
                 bytestosend=b''.join([msgbytes,f.bytes[i:]])
-                self.socket.sendto(bytestosend,user.addr)
+                self.sendbytes(bytestosend,user.addr)
             elif i==0:#First segment
                 formatted_msg='FILE FIRST '+f.name+' '
                 msgbytes=formatted_msg.encode()
                 bytestosend=b''.join([msgbytes,f.bytes[i:i+10000]])
-                self.socket.sendto(bytestosend,user.addr)
+                self.sendbytes(bytestosend,user.addr)
             else:
                 formatted_msg='FILE PART '+f.name+' '
                 msgbytes=formatted_msg.encode()
                 bytestosend=b''.join([msgbytes,f.bytes[i:i+10000]])
-                self.socket.sendto(bytestosend,user.addr)
+                self.sendbytes(bytestosend,user.addr)
 
 
     def askAboutFile(self,f):
         formatted_msg='FILE? '+f.name+' '+f.user_from+' '+f.id
         for user in self.users:
             if user.username != f.user_from:
-                self.socket.sendto(formatted_msg.encode(),user.addr)
+                self.sendbytes(formatted_msg.encode(),user.addr)
 
     def addUser(self,username,addr):
         if len(self.users) < 3:
@@ -145,7 +152,7 @@ class ChatServer:
             self.users.append(newuser)
         else:
             formatted_msg='ERROR chat server full';
-            self.socket.sendto(formatted_msg.encode(),addr)
+            self.sendbytes(formatted_msg.encode(),addr)
 
     def getUser(self,username):
         for user in self.users:
