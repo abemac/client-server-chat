@@ -2,6 +2,10 @@ from socket import *
 from util import *
 from csv import reader
 
+# This file contains the code for the ChatServer class. The class contains functions that manage the current user,
+# receive messages and file from users, and send the messages to every other user, and send the file to the correct user.
+# This program is multi-threaded to allow the simultaneous sending and receiving of data.
+
 class ChatServer:
     def __init__(self,port):
         self.msgsocket = socket(AF_INET,SOCK_DGRAM)

@@ -1,8 +1,13 @@
 from socket import *
 import time
 
-# This class implements the rdt3.0 sender protocol from the book
-# It is used by both the server and client to send messages reliably over a UDP connection
+# This file contains the code for the RDTSender and RDTReceiver classes. 
+# The RDTSender class implements the rdt3.0 sender protocol from the Kurose-Ross textbook.
+# The RDTReceiver class implements the rdt2.2 receiver protocol from the Kurose-Ross textbook.
+# These classes are used by both the server and client to send messages reliably over a UDP connection.
+# Because of the requirements of the lab, before sending the packet, these classes also simulate packet loss at random.
+# The percent of packet loss is based on the percentage in the rdt.conf file.
+
 class RDTSender:
     def __init__(self):
         self.state = 0      # State of the FST

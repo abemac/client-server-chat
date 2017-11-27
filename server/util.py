@@ -1,4 +1,8 @@
 import time
+
+# The file contains the User and Message classes. These classes are used by the ChatServer class in server/server.py.
+# The classes contain the needed data members to manage logged in users and the messages they send or receive.
+
 class User:
     def __init__(self,username,addr):
         self.username=username

@@ -6,6 +6,9 @@ import tkinter as tk
 import tkinter.filedialog as filechooser
 import os
 
+# This file contains the code for the Client class. The class contains functions that create the user interface,
+# allow a user to login or out, and manage the sending and receiving of files and messages. This program is multi-threaded
+# to allow the simultaneous sending and receiving of data.
 
 class Client(tk.Frame):
     def __init__(self,root):
@@ -58,13 +61,12 @@ class Client(tk.Frame):
         self.msgs.pack(side=tk.LEFT,fill=tk.BOTH)
         self.scrollbar.config(command=self.msgs.yview)
 
-
-
     def onSendBtnPress(self):
         msg=self.textentry.get("1.0",tk.END)
         self.textentry.delete("1.0",tk.END)
         formatted_msg='MESSAGE,'+self.username+',"'+msg.replace('"',"&quot;")+'"'
         self.sendmessage(formatted_msg)
+
     def onSendfileBtnPress(self):
         filetosend=filechooser.askopenfilename()
         filesize=os.path.getsize(filetosend)
@@ -75,17 +77,17 @@ class Client(tk.Frame):
 
     def login(self,username):
         formatted_msg='LOGIN,'+username
-        self.sendmessage(formatted_msg);
+        self.sendmessage(formatted_msg)
+
     def logout(self,username):
         formatted_msg='LOGOUT,'+username
-        self.sendmessage(formatted_msg);
+        self.sendmessage(formatted_msg)
 
     def start(self):
         self.running=True
         self.recvThread=Thread(target=self.recvLoop)
         self.recvThread.daemon=True
         self.recvThread.start()
-
 
     def recvLoop(self):
         while self.running==True:
@@ -116,8 +118,6 @@ class Client(tk.Frame):
 
     def close(self):
         self.socket.close()
-
-
 
 if __name__ == "__main__":
     root=tk.Tk()
