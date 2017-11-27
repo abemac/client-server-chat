@@ -1,27 +1,50 @@
 from socket import *
 from util import *
-
+from threading import Thread
 # This file contains the code for the ChatServer class. The class contains functions that manage the current user,
 # receive messages and file from users, and send the messages to every other user, and send the file to the correct user.
 # This program is multi-threaded to allow the simultaneous sending and receiving of data.
 
 class ChatServer:
-    def __init__(self,port):
+    def __init__(self):
+        f = open('server.conf')
+        for line in f:
+            tokens=line.split()
+            if tokens[0]=='Port':
+                self.port=int(tokens[1])
+
         self.socket = socket(AF_INET,SOCK_DGRAM)
-        self.socket.bind(('',port))
+        self.socket.bind(('',self.port))
         self.users=[]       # list of users of type User
         self.running=False  # Is the sever running and ready to send/receive data?
         self.files=[]       #buffer of files, of type File
-        print("Chat server initiated")
+        self.start()
 
     def start(self):
+        self.mainthread=Thread(target=self.mainloop)
+        self.mainthread.start()
+        self.adminloop()
+        self.mainthread.join()
+    def adminloop(self):
+        while self.running==True:
+            cmd=input('> ')
+            if cmd=='help':
+                print ("""
+                help
+
+
+                """)
+            elif cmd == 'users':
+                for user in self.users:
+                    print (user)
+
+    def mainloop(self):
         self.running=True
         while self.running==True:
             bytes, clientaddress=self.socket.recvfrom(65536)
             self.handleMessage(bytes,clientaddress)
 
     def handleMessage(self,bytes,clientaddress):
-        print(bytes)
         i=bytes.find(b' ',0)
         action=bytes[0:i].decode()
 
@@ -63,7 +86,6 @@ class ChatServer:
             username=bytes[i+1:].decode()
             self.getUser(username).addr=clientaddress # Update User ip
             f=self.getFileById(fileid)
-            print(f.name)
             self.sendfile(f,self.getUser(username))
 
     def sendMsg(self,m):
@@ -72,22 +94,22 @@ class ChatServer:
             self.socket.sendto(formatted_msg.encode(),user.addr)
 
     def sendfile(self,f,user):
-        for i in range(0,len(f.bytes),50000):
-            lastsegment=(i+50000) >= len(f.bytes)
+        for i in range(0,len(f.bytes),10000):
+            lastsegment=(i+10000) >= len(f.bytes)
             if lastsegment==True:
                 formatted_msg='FILE LAST '+f.name+' '
                 msgbytes=formatted_msg.encode()
-                bytestosend=b''.join([msgbytes,f.bytes])
+                bytestosend=b''.join([msgbytes,f.bytes[i:]])
                 self.socket.sendto(bytestosend,user.addr)
             elif i==0:#First segment
                 formatted_msg='FILE FIRST '+f.name+' '
                 msgbytes=formatted_msg.encode()
-                bytestosend=b''.join([msgbytes,f.bytes])
+                bytestosend=b''.join([msgbytes,f.bytes[i:i+10000]])
                 self.socket.sendto(bytestosend,user.addr)
             else:
                 formatted_msg='FILE PART '+f.name+' '
                 msgbytes=formatted_msg.encode()
-                bytestosend=b''.join([msgbytes,f.bytes])
+                bytestosend=b''.join([msgbytes,f.bytes[i:i+10000]])
                 self.socket.sendto(bytestosend,user.addr)
 
 
@@ -99,7 +121,6 @@ class ChatServer:
 
     def addUser(self,username,addr):
         if len(self.users) < 3:
-            print(addr)
             newuser=User(username,addr)
             self.users.append(newuser)
         else:
@@ -126,6 +147,4 @@ class ChatServer:
 
 
 if __name__ == "__main__":
-    port=12000
-    chatserver = ChatServer(port)
-    chatserver.start()
+    chatserver = ChatServer()

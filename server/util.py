@@ -7,6 +7,8 @@ class User:
     def __init__(self,username,addr):
         self.username=username
         self.addr=addr;
+    def __str__(self):
+        return self.username+' '+str(self.addr)
 
 class Message:
     def __init__(self,user_from,message):
