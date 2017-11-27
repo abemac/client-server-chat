@@ -13,3 +13,10 @@ class Message:
         self.user_from=user_from
         self.message=message
         self.time=time.time()
+
+class File:
+    def __init__(self,name,user_from,bytes):
+        self.user_from=user_from
+        self.bytes=bytes
+        self.name=name
+        self.id=str(time.time())

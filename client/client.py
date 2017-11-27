@@ -3,7 +3,9 @@ from threading import Thread
 import time
 import tkinter as tk
 import tkinter.filedialog as filechooser
+import tkinter.messagebox as dialog
 import os
+import ntpath
 
 # This file contains the code for the Client class. The class contains functions that create the user interface,
 # allow a user to login or out, and manage the sending and receiving of files and messages. This program is multi-threaded
@@ -34,6 +36,7 @@ class Client(tk.Frame):
     def onConnect(self):
         self.serverip = str(self.ip.get())
         self.username = str(self.uname.get())
+        self.username=self.username.replace(' ','-')
         self.ip.destroy()
         self.uname.destroy()
         self.l1.destroy()
@@ -70,11 +73,12 @@ class Client(tk.Frame):
         filetosend=filechooser.askopenfilename()
         try:
             filesize=os.path.getsize(filetosend)
+            filename=ntpath.basename(filetosend).replace(' ','-')
             f=open(filetosend,'rb')
             bytes=f.read(filesize)
-            self.sendfile(bytes)
-        except FileNotFoundError:
-            print("File not found")
+            self.sendfile(bytes,filename)
+        except Exception:
+            print("File not found or too big")
 
     def login(self,username):
         formatted_msg='LOGIN '+username
@@ -94,12 +98,15 @@ class Client(tk.Frame):
         while self.running==True:
             self.recvmessage()
 
-    def sendfile(self,data):
-        formatted_msg='FILE '+self.username+','
+    def sendfile(self,data,filename):
+        formatted_msg='FILE '+self.username+' '+filename+' '
         msgbytes=formatted_msg.encode()
         bytestosend=b''.join([msgbytes,data])
-        print(bytestosend)
         self.socket.sendto(bytestosend,(self.serverip,self.serverport))
+
+    def reqfile(self,fileid):
+        formatted_msg='GET '+fileid+' '+self.username
+        self.sendmessage(formatted_msg)
 
     def sendmessage(self,message):
         self.socket.sendto(message.encode(),(self.serverip,self.serverport))
@@ -120,6 +127,27 @@ class Client(tk.Frame):
         elif action == 'ERROR':
             msg=bytes[i+1:].decode()
             print('SERVER ERROR: '+message);
+        elif action == 'FILE?':
+            lasti=i
+            i=bytes.find(b' ',lasti+1)
+            filename=bytes[lasti+1:i].decode()
+            lasti=i
+            i=bytes.find(b' ',lasti+1)
+            user_from=bytes[lasti+1:i].decode()
+            id=bytes[i+1:].decode()
+            recvFile=dialog.askyesno('File Transfer','receive file '+filename+' from '+user_from+'?')
+            if recvFile:
+                self.reqfile(id)
+        elif action == 'FILE':
+            lasti=i
+            i=bytes.find(b' ',lasti+1)
+            filename=bytes[lasti+1:i].decode()
+            filedata=bytes[i+1:]
+            saveloc=filechooser.asksaveasfilename(initialfile=filename)
+            f=open(saveloc,'wb')
+            f.write(filedata)
+            f.close()
+            dialog.showinfo('File Transfer','File saved to '+saveloc)
 
 
     def close(self):
