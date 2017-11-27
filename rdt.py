@@ -20,7 +20,7 @@ class RDTSender:
         self.timer = None # The timer object used to detect timeouts
 
         # Open rdt/rdt.conf and read in the packet_loss_percent value
-        f = open('client.conf')
+        f = open('rdt.conf')
         for line in f:
             tokens=line.split()
             if tokens[0]=='PacketDropRate':
@@ -105,7 +105,7 @@ class RDTSender:
 class RDTReceiver:
     def __init__(self,socket):
 
-        f = open('client.conf')
+        f = open('rdt.conf')
         for line in f:
             tokens=line.split()
             if tokens[0]=='PacketDropRate':
