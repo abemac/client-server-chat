@@ -31,7 +31,7 @@ class Client(tk.Frame):
                 self.serverport=int(tokens[1])
             elif tokens[0]=='DefaultUserName':
                 self.username=int(tokens[1])
-
+        f.close()
         self.createLoginWidgets()
         self.socket=socket(AF_INET,SOCK_DGRAM)
         self.rdtsender=RDTSender(self.socket)
@@ -153,9 +153,12 @@ class Client(tk.Frame):
 
     def sendbytes(self,bytes):
         self.rdtsender.rdt_send(bytes,(self.serverip,self.serverport))
+        #self.socket.sendto(bytes,(self.serverip,self.serverport))
 
     def recvmessage(self):
         bytes,addr=self.rdtreceiver.rdt_recv(65536)
+        #bytes,addr=self.socket.recvfrom(65536)
+        print("Client:"+str(bytes))
         i=bytes.find(b' ',0)
         action=bytes[0:i].decode()
         if action == 'MESSAGE':

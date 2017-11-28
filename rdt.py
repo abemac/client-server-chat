@@ -25,24 +25,16 @@ class RDTSender:
             tokens=line.split()
             if tokens[0]=='PacketDropRate':
                 self.packet_loss_percent=int(tokens[1])# Convert the string to an int
-                print(self.packet_loss_percent)                               # Percent chance any one packet being sent is lost due to simulated packet loss
+                                               # Percent chance any one packet being sent is lost due to simulated packet loss
 
-
+        f.close()
         self.socket=socket;
-        print(self.socket)
-
-    # State of the sender; Used to make the sender wait until the correct packet has been ACK
-    def increment_state(self):
-        if self.state < 3:
-            self.state  = self.state + 1
-        else:
-            self.state = 0
 
     # This function is called then the timer object times out
     # It is used to resend the lost data/dropped data
     def timeout(self,bytes,seqnum,addr):
         self.udt_send(bytes,seqnum,addr)
-        self.timer=threading.Timer(self.timeout_amount, self.timeout,args=(bytes,0,addr));
+        self.timer=threading.Timer(self.timeout_amount, self.timeout,args=(bytes,seqnum,addr));
         self.timer.start()
 
     # Called by the application to send a packet reliably over the UDP connection
@@ -50,39 +42,34 @@ class RDTSender:
     def rdt_send(self, bytes,addr):
         if self.state == 0:
             self.udt_send(bytes,0,addr)
-            self.increment_state()  # Move in the "waiting" state
             self.timer=threading.Timer(self.timeout_amount, self.timeout,args=(bytes,0,addr));
             self.timer.start()
             self.waitforACK(0)
-            self.increment_state()
+            self.state=2
         elif self.state == 2:
             self.udt_send(bytes,1,addr)
-            self.increment_state()  # Move in the "waiting" state
             self.timer=threading.Timer(self.timeout_amount, self.timeout,args=(bytes,1,addr));
             self.timer.start()
             self.waitforACK(1)
-            self.increment_state()
+            self.state=0
 
     # Receive a message from the UDP connection
     def waitforACK(self,ack_number):
-        bytes,addr=self.socket.recvfrom(2048)
-        sequence_number = int(bytes[0:1]) # Extract the sequence number from the message
-        print("Received packet has sequence number: " + str(sequence_number))
-
-        if self.is_ACK(bytes):
-            if sequence_number == ack_number: # The expected sequence number was received;
-                self.timer.cancel() #Stop the timeout timer
-                print("Correct sequence number received")
-                return
+        while True:
+            bytes,addr=self.socket.recvfrom(2048)
+            sequence_number = int(bytes[0:1]) # Extract the sequence number from the message
+            if self.is_ACK(bytes):
+                if sequence_number == ack_number: # The expected sequence number was received;
+                    self.timer.cancel() #Stop the timeout timer
+                    print("Correct sequence number received "+str(sequence_number))
+                    return
+                else:
+                    print("Wrong sequence number "+str(sequence_number))
             else:
-                print("Wrong sequence number")
-                waitforAck(self,number)
-        else:
-            print("Packet is not an ACK (len=" + str(len(byte_message)) + ")")
-            waitforAck(self,number)
+                print("Packet is not an ACK (len=" + str(len(bytes)) + ")")
 
 
-    def udt_send(self, bytes,seq_number,addr):
+    def udt_send(self,bytes,seq_number,addr):
 
         # Simulate packet loss
         if random.randint(1, 100) <= self.packet_loss_percent:
@@ -110,33 +97,31 @@ class RDTReceiver:
             tokens=line.split()
             if tokens[0]=='PacketDropRate':
                 self.packet_loss_percent=int(tokens[1])# Convert the string to an int
-                print(self.packet_loss_percent)                               # Percent chance any one packet being sent is lost due to simulated packet loss
+                                             # Percent chance any one packet being sent is lost due to simulated packet loss
 
+        f.close()
         self.socket=socket
         self.state=0
 
     def rdt_recv(self,bufsize):
-
-        bytes,addr=self.socket.recvfrom(bufsize)   # Receive the UDP packet
-        sequence_number = int(bytes[0:1]) # Extract the sequence number from the message
-        print("Received packet has sequence number: " + str(sequence_number))
-
-        if self.state==0:
-            if sequence_number==0:
-                self.udt_send_ACK(0,addr)
-                self.state=1
-                return bytes,addr
-            else:
-                self.udt_send_ACK(1,addr)
-                return self.rdt_recv(bufsize)
-        elif self.state==1:
-            if sequence_number==1:
-                self.udt_send_ACK(1,addr)
-                self.state=0
-                return bytes,addr
-            else:
-                self.udt_send_ACK(0,addr)
-                return self.rdt_recv(bufsize)
+        while True:
+            bytes,addr=self.socket.recvfrom(bufsize)   # Receive the UDP packet
+            sequence_number = int(bytes[0:1]) # Extract the sequence number from the message
+            print("Received packet has sequence number: " + str(sequence_number))
+            if self.state==0:
+                if sequence_number==0:
+                    self.udt_send_ACK(0,addr)
+                    self.state=1
+                    return bytes[1:],addr
+                else:
+                    self.udt_send_ACK(1,addr)
+            elif self.state==1:
+                if sequence_number==1:
+                    self.udt_send_ACK(1,addr)
+                    self.state=0
+                    return bytes[1:],addr
+                else:
+                    self.udt_send_ACK(0,addr)
 
     # Construct the ACK packet and send the message with UDP
     # This functions is used by the receiver to send an ACK for the just received packet

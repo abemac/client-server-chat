@@ -16,10 +16,10 @@ class ChatServer:
             tokens=line.split()
             if tokens[0]=='Port':
                 self.port=int(tokens[1])
+        f.close()
 
         self.socket = socket(AF_INET,SOCK_DGRAM)
         self.socket.bind(('',self.port))
-        print(self.socket)
         self.users=[]       # list of users of type User
         self.files=[]       #buffer of files, of type File
         signal.signal(signal.SIGINT,self.siginthandler)
@@ -64,6 +64,8 @@ class ChatServer:
     def mainloop(self):
         while True:
             bytes, clientaddress=self.rdtreceiver.rdt_recv(65536)
+            print(str(bytes))
+            #bytes, clientaddress=self.socket.recvfrom(65536)
             self.handleMessage(bytes,clientaddress)
 
     def handleMessage(self,bytes,clientaddress):
@@ -123,6 +125,7 @@ class ChatServer:
 
     def sendbytes(self,bytes,addr):
         self.rdtsender.rdt_send(bytes,addr)
+        #self.socket.sendto(bytes,addr);
 
     def sendfile(self,f,user):
         for i in range(0,len(f.bytes),10000):
