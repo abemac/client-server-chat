@@ -29,8 +29,8 @@ class ChatServer:
         self.rdtreceiver=RDTReceiver(self.socket)   # data reliably over the UDP connection
         self.start()
 
-    # Starts the varous threads needed to run the program, including the server command line interface
-    # and the sending and receiving of data
+    # Starts the a thread needed to receive messages
+    # The main process handles the sending and server command line
     def start(self):
         self.mainthread=Thread(target=self.mainloop)
         self.mainthread.daemon=True
@@ -79,14 +79,14 @@ class ChatServer:
         action=bytes[0:i].decode()      # Extract the action type of the raw received bytes
 
         if action == 'MESSAGE':         # The user sent a chat message, which is to be sent to everyone elses
-            lasti=i
+            lasti=i                     # These i and lasti values are used to segment the message for data extraction
             i=bytes.find(b' ',lasti+1)                  # Extracts the starting point of the payload
             username=bytes[lasti+1:i].decode()          # Extracts the username from the payload
             message=bytes[i+1:].decode()                # Extracts the chat message from the payload
             self.getUser(username).addr=clientaddress   # Updates User's IP address
             m=Message(username,message)                 # Create a new message container
             self.sendMsg(m)                             # Broadcast the message to every user
-        elif action == 'LOGIN':     # Message sent from a user who just logged uin
+        elif action == 'LOGIN':     # Message sent from a user who just logged in
             username=bytes[i+1:].decode()
             self.addUser(username,clientaddress)  # Add the new user to the list of logged in users
         elif action == 'LOGOUT':    # Message sent when a user logs out
@@ -96,7 +96,7 @@ class ChatServer:
             except Exception:
                 print("Error logging out user")
         elif action == 'FILE':          # The user is uploading a file
-            lasti=i                     # These i and lasti values are used to segment the message for data extraction
+            lasti=i                     
             i=bytes.find(b' ',lasti+1)
             part=bytes[lasti+1:i].decode()  # Get the part identifier, (is it the last segment of the file)
             lasti=i
