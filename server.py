@@ -64,6 +64,8 @@ class ChatServer:
                     print (file.name)
             elif cmd == 'exit':         # Close the server program
                 self.close()
+            else:
+                print("Command not recognized (type \"help\" to see available commands)")
 
     # Handles the receiving of data sent by users passed up from the rdt protocol
     def mainloop(self):
@@ -100,7 +102,7 @@ class ChatServer:
             try:
                 self.users.remove(self.getUser(username))   # Remove the username from the list of logged in users
             except Exception:
-                print("Error logging out user")
+                print("Error logging out user; Username not found among logged in users")
         elif action == 'FILE':          # The user is uploading a file
             lasti=i                     
             i=bytes.find(b' ',lasti+1)
@@ -133,6 +135,7 @@ class ChatServer:
     # Broadcasts a chat message to every user connected to the server
     def sendMsg(self,m):
         formatted_msg='MESSAGE '+m.user_from+' '+m.message      # Crafts the payload into our standard format
+        print("Server: broadcasting \"" + formatted_msg.rstrip()  + "\" to all users")
         for user in self.users:
             self.sendbytes(formatted_msg.encode(),user.addr)    # Loops through all the users and send them the message
 
