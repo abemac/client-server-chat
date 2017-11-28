@@ -68,17 +68,23 @@ class ChatServer:
     # Handles the receiving of data sent by users passed up from the rdt protocol
     def mainloop(self):
         while True:
-            #bytes, clientaddress=self.rdtreceiver.rdt_recv(65536)   # Get data from rdt level
+            bytes, clientaddress=self.rdtreceiver.rdt_recv(65536)   # Get data from rdt level
             #print("Server.py: "+bytes.decode())
-            bytes, clientaddress=self.socket.recvfrom(65536)
+            # bytes, clientaddress=self.socket.recvfrom(65536)
             self.handleMessage(bytes,clientaddress)                 # Process the received message
+
+    # The interface between the application and the application and the rdt protocol
+    # This is called whenever a the server needs to send a message
+    def sendbytes(self,bytes,addr):
+        self.rdtsender.rdt_send(bytes,addr)
+        #self.socket.sendto(bytes,addr);
 
     # Handles the messages (packets) sent by user, depending on the type of message they sent
     def handleMessage(self,bytes,clientaddress):
         i=bytes.find(b' ',0)
         action=bytes[0:i].decode()      # Extract the action type of the raw received bytes
 
-        if action == 'MESSAGE':         # The user sent a chat message, which is to be sent to everyone elses
+        if action == 'MESSAGE':         # The user sent a chat message, which is to be sent to everyone else
             lasti=i                     # These i and lasti values are used to segment the message for data extraction
             i=bytes.find(b' ',lasti+1)                  # Extracts the starting point of the payload
             username=bytes[lasti+1:i].decode()          # Extracts the username from the payload
@@ -129,12 +135,6 @@ class ChatServer:
         formatted_msg='MESSAGE '+m.user_from+' '+m.message      # Crafts the payload into our standard format
         for user in self.users:
             self.sendbytes(formatted_msg.encode(),user.addr)    # Loops through all the users and send them the message
-
-    # The interface between the application and the application and the rdt protocol
-    # This is called whenever a the server needs to send a message
-    def sendbytes(self,bytes,addr):
-        #self.rdtsender.rdt_send(bytes,addr)
-        self.socket.sendto(bytes,addr);
 
     # Breaks up a file and send it in segments
     def sendfile(self,f,user):

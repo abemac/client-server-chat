@@ -168,13 +168,14 @@ class Client(tk.Frame):
     # The interface between the application and the application and the rdt protocol
     # This is called whenever a the client needs to send a message
     def sendbytes(self,bytes):
-        #self.rdtsender.rdt_send(bytes,(self.serverip,self.serverport))
-        self.socket.sendto(bytes,(self.serverip,self.serverport))
+        self.rdtsender.rdt_send(bytes,(self.serverip, self.serverport))
+        # self.socket.sendto(bytes,(self.serverip,self.serverport))
 
     # Handle the receiving of messages
     def recvmessage(self):
-        #bytes,addr=self.rdtreceiver.rdt_recv(65536)
-        bytes,addr=self.socket.recvfrom(65536)      # Receive packet payload
+        bytes,addr=self.rdtreceiver.rdt_recv(65536)
+        # bytes,addr=self.socket.recvfrom(65536)      # Receive packet payload
+
         print("Client: received rdt "+str(bytes))
         i=bytes.find(b' ',0)
         action=bytes[0:i].decode()  # Extract the action type of the raw received bytes
