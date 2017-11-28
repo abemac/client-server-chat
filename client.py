@@ -33,10 +33,9 @@ class Client(tk.Frame):
                 self.username=int(tokens[1])
         f.close()
         self.createLoginWidgets()
-        self.sendsocket=socket(AF_INET,SOCK_DGRAM)
-        self.recvsocket=socket(AF_INET,SOCK_DGRAM)
-        self.rdtsender=RDTSender(self.sendsocket)
-        self.rdtreceiver=RDTReceiver(self.recvsocket)
+        self.socket=socket(AF_INET,SOCK_DGRAM)
+        self.rdtsender=RDTSender(self.socket)
+        self.rdtreceiver=RDTReceiver(self.socket)
         self.running=False      # Is the client program running and ready to send/receive?
         self.loggedin=False     # Has a user logged in?
         self.filebuf=bytearray()
@@ -211,8 +210,7 @@ class Client(tk.Frame):
 
     def close(self):
         self.logout(self.username)
-        self.sendsocket.close()
-        self.recvsocket.close()
+        self.socket.close()
         sys.exit(0)
 
 if __name__ == "__main__":

@@ -19,15 +19,14 @@ class ChatServer:
         f.close()
 
         # Open up two sockets: one for sending, and one for receiving
-        self.recvsocket = socket(AF_INET,SOCK_DGRAM)
-        self.recvsocket.bind(('',self.port))
-        self.sendsocket = socket(AF_INET,SOCK_DGRAM)
+        self.socket = socket(AF_INET,SOCK_DGRAM)
+        self.socket.bind(('',self.port))
 
         self.users=[]       # list of users currently logged in; of type User
         self.files=[]       # buffer of files receivedl; of type File
         signal.signal(signal.SIGINT,self.siginthandler)
-        self.rdtsender=RDTSender(self.sendsocket)       # Objects used to send and receive
-        self.rdtreceiver=RDTReceiver(self.recvsocket)   # data reliably over the UDP connection
+        self.rdtsender=RDTSender(self.socket)       # Objects used to send and receive
+        self.rdtreceiver=RDTReceiver(self.socket)   # data reliably over the UDP connection
         self.start()
 
     # Starts the varous threads needed to run the program, including the server command line interface
@@ -187,8 +186,7 @@ class ChatServer:
         return None
 
     def close(self):
-        self.sendsocket.close()
-        self.recvsocket.close()
+        self.socket.close()
         sys.exit(0)
     def siginthandler(self,signum,frame):
         print("")
