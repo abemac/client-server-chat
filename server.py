@@ -18,7 +18,7 @@ class ChatServer:
                 self.port=int(tokens[1])    # Get the default port number from server.conf
         f.close()
 
-        # Open up two sockets: one for sending, and one for receiving
+        # Open and bind the socket(s) need for the server to communicate
         self.socket = socket(AF_INET,SOCK_DGRAM)
         self.socket.bind(('',self.port))
 
@@ -80,29 +80,29 @@ class ChatServer:
 
         if action == 'MESSAGE':         # The user sent a chat message, which is to be sent to everyone elses
             lasti=i
-            i=bytes.find(b' ',lasti+1)  # Extracts the starting point of the payload
-            username=bytes[lasti+1:i].decode()  # Extracts the username from the payload
-            message=bytes[i+1:].decode()        # Extracts the chat message from the payload
-            self.getUser(username).addr=clientaddress # Updates User's IP address
-            m=Message(username,message)         # Create a new message container
-            self.sendMsg(m)                     # Broadcast the message to every user
-        elif action == 'LOGIN':         # Message sent from a user who just logged uin
+            i=bytes.find(b' ',lasti+1)                  # Extracts the starting point of the payload
+            username=bytes[lasti+1:i].decode()          # Extracts the username from the payload
+            message=bytes[i+1:].decode()                # Extracts the chat message from the payload
+            self.getUser(username).addr=clientaddress   # Updates User's IP address
+            m=Message(username,message)                 # Create a new message container
+            self.sendMsg(m)                             # Broadcast the message to every user
+        elif action == 'LOGIN':     # Message sent from a user who just logged uin
             username=bytes[i+1:].decode()
-            self.addUser(username,clientaddress)    # Add the new user to the list of logged in users
-        elif action == 'LOGOUT':        # Message sent when a user logs out
+            self.addUser(username,clientaddress)  # Add the new user to the list of logged in users
+        elif action == 'LOGOUT':    # Message sent when a user logs out
             username=bytes[i+1:].decode()
             try:
                 self.users.remove(self.getUser(username))   # Remove the username from the list of logged in users
             except Exception:
                 print("Error logging out user")
         elif action == 'FILE':          # The user is uploading a file
-            lasti=i                     # These i and lasti values are used to segement the message for data extraction
+            lasti=i                     # These i and lasti values are used to segment the message for data extraction
             i=bytes.find(b' ',lasti+1)
-            part=bytes[lasti+1:i].decode()  # Get the part identifier, (is it the last segemnt of the file)
+            part=bytes[lasti+1:i].decode()  # Get the part identifier, (is it the last segment of the file)
             lasti=i
             i=bytes.find(b' ',lasti+1)
-            username=bytes[lasti+1:i].decode()  # Extract the username of the user who is sending the file
-            self.getUser(username).addr=clientaddress # Update User ip
+            username=bytes[lasti+1:i].decode()          # Extract the username of the user who is sending the file
+            self.getUser(username).addr=clientaddress   # Update User ip
             lasti=i
             i=bytes.find(b' ',lasti+1)
             filename=bytes[lasti+1:i].decode()  # Extract the filename
@@ -112,79 +112,88 @@ class ChatServer:
                 f=File(filename,username,filedata)  # No file found, create a new container for one
                 self.files.append(f)
             else:
-                f.bytes=b''.join([f.bytes,filedata]) # Add on to file data if the server aready has a record of it
-            if part=='LAST':
-                self.askAboutFile(f)
-        elif action == 'GET':
+                f.bytes=b''.join([f.bytes,filedata]) # Add on to file data if the server already has a record of it
+            if part=='LAST':            # All segments of the file have been received
+                self.askAboutFile(f)    # Ask the other users if they would like to receive the file
+        elif action == 'GET':   # User is asking for a file from the server
             lasti=i
             i=bytes.find(b' ',lasti+1)
-            fileid=bytes[lasti+1:i].decode()
-            username=bytes[i+1:].decode()
-            self.getUser(username).addr=clientaddress # Update User ip
+            fileid=bytes[lasti+1:i].decode()    # Get the file id
+            username=bytes[i+1:].decode()       # Get the username of person who wants to receive the file
+            self.getUser(username).addr=clientaddress   # Update User ip
             f=self.getFileById(fileid)
-            self.sendfile(f,self.getUser(username))
+            self.sendfile(f,self.getUser(username))     # Send the file to the user
 
+    # Broadcasts a chat message to every user connected to the server
     def sendMsg(self,m):
-        formatted_msg='MESSAGE '+m.user_from+' '+m.message
+        formatted_msg='MESSAGE '+m.user_from+' '+m.message      # Crafts the payload into our standard format
         for user in self.users:
-            self.sendbytes(formatted_msg.encode(),user.addr)
+            self.sendbytes(formatted_msg.encode(),user.addr)    # Loops through all the users and send them the message
 
+    # The interface between the application and the application and the rdt protocol
+    # This is called whenever a the server needs to send a message
     def sendbytes(self,bytes,addr):
         self.rdtsender.rdt_send(bytes,addr)
         #self.socket.sendto(bytes,addr);
 
+    # Breaks up a file and send it in segments
     def sendfile(self,f,user):
         for i in range(0,len(f.bytes),10000):
             lastsegment=(i+10000) >= len(f.bytes)
-            if lastsegment==True:
-                formatted_msg='FILE LAST '+f.name+' '
-                msgbytes=formatted_msg.encode()
-                bytestosend=b''.join([msgbytes,f.bytes[i:]])
-                self.sendbytes(bytestosend,user.addr)
-            elif i==0:#First segment
+            if lastsegment==True:                       # This segment is the final part of the file
+                formatted_msg='FILE LAST '+f.name+' '   # Crafts the payload into our standard format
+                msgbytes=formatted_msg.encode()         # Convert the message to raw bytes
+                bytestosend=b''.join([msgbytes,f.bytes[i:]])    # Add the file data bytes to the payload
+                self.sendbytes(bytestosend,user.addr)   # Send the bytes over the rdt protocol
+            elif i==0:                                  # First segment of the file
                 formatted_msg='FILE FIRST '+f.name+' '
                 msgbytes=formatted_msg.encode()
                 bytestosend=b''.join([msgbytes,f.bytes[i:i+10000]])
                 self.sendbytes(bytestosend,user.addr)
-            else:
+            else:                                       # This segment is a middle part of the file
                 formatted_msg='FILE PART '+f.name+' '
                 msgbytes=formatted_msg.encode()
                 bytestosend=b''.join([msgbytes,f.bytes[i:i+10000]])
                 self.sendbytes(bytestosend,user.addr)
 
-
+    # Broadcast to every user if they want to receive the file, except to the person who sent the file
     def askAboutFile(self,f):
-        formatted_msg='FILE? '+f.name+' '+f.user_from+' '+f.id
+        formatted_msg='FILE? '+f.name+' '+f.user_from+' '+f.id  # Crafts the payload into our standard format
         for user in self.users:
             if user.username != f.user_from:
                 self.sendbytes(formatted_msg.encode(),user.addr)
 
+    # Adds a new user to the server's list of logged in users
     def addUser(self,username,addr):
         if len(self.users) < 3:
-            newuser=User(username,addr)
+            newuser=User(username,addr)     # Create the new user and add them to the list
             self.users.append(newuser)
-        else:
-            formatted_msg='ERROR chat server full';
+        else:                               # There can only be a max of three users on the server at once
+            formatted_msg='ERROR chat server full'
             self.sendbytes(formatted_msg.encode(),addr)
 
+    # Returns the user data from a given username
     def getUser(self,username):
         for user in self.users:
             if(user.username == username):
                 return user
         return None
 
+    # Return a file from a given file id
     def getFileById(self,id):
         for file in self.files:
             if(file.id == id):
                 return file
         return None
 
+    # Return a file from a given file name
     def getFileByName(self,name):
         for file in self.files:
             if(file.name == name):
                 return file
         return None
 
+    # When the server exits, close the sockets
     def close(self):
         self.socket.close()
         sys.exit(0)
@@ -192,5 +201,6 @@ class ChatServer:
         print("")
         self.close()
 
+# Starts the Chat server when this file is run
 if __name__ == "__main__":
     chatserver = ChatServer()

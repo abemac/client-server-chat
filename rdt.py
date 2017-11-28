@@ -26,9 +26,9 @@ class RDTSender:
         if self.states[id]==0:
             self.udt_send(bytes,0,addr)
             self.waitACK(0,id)
-            self.states[id]=1
-            print("Sender: State is now 1")
-        elif self.states[id]==1:
+            self.states[id]=2
+            print("Sender: State is now 2")
+        elif self.states[id]==2:
             self.udt_send(bytes,1,addr)
             self.waitACK(1,id)
             self.states[id]=0
@@ -72,13 +72,11 @@ class RDTReceiver:
             seq = int(bytes[0:1]) # Extract the sequence number from the message
             if id not in self.states:
                 self.states[id]=0
-                print("Receiver: new id:" +id)
 
             if self.states[id] == 0:
                 if seq == 0:
                     self.ACK(0,addr)
                     self.states[id]=1
-                    print("Receiver: "+id+' is now 1')
                     return bytes[1:],addr
                 else:
                     self.ACK(1,addr)
@@ -86,7 +84,6 @@ class RDTReceiver:
                 if seq == 1:
                     self.ACK(1,addr)
                     self.states[id]=0
-                    print("Receiver: "+id+' is now 0')
                     return bytes[1:],addr
                 else:
                     self.ACK(0,addr)
