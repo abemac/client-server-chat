@@ -5,8 +5,8 @@ import sys
 import signal
 from rdt import *
 
-# This file contains the code for the ChatServer class. The class contains functions that manage the current user,
-# receive messages and file from users, and send the messages to every other user, and send the file to the correct user.
+# This file contains the code for the ChatServer class. The class contains functions that manage the current users,
+# receive messages and files from users, send the messages/files to every other user.
 # This program is multi-threaded to allow the simultaneous sending and receiving of data.
 
 class ChatServer:
@@ -15,19 +15,23 @@ class ChatServer:
         for line in f:
             tokens=line.split()
             if tokens[0]=='Port':
-                self.port=int(tokens[1])
+                self.port=int(tokens[1])    # Get the default port number from server.conf
         f.close()
 
-        self.socket = socket(AF_INET,SOCK_DGRAM)
-        self.socket.bind(('',self.port))
-        self.users=[]       # list of users of type User
-        self.files=[]       #buffer of files, of type File
+        # Open up two sockets: one for sending, and one for receiving
+        self.recvsocket = socket(AF_INET,SOCK_DGRAM)
+        self.recvsocket.bind(('',self.port))
+        self.sendsocket = socket(AF_INET,SOCK_DGRAM)
+
+        self.users=[]       # list of users currently logged in; of type User
+        self.files=[]       # buffer of files receivedl; of type File
         signal.signal(signal.SIGINT,self.siginthandler)
-        self.rdtsender=RDTSender(self.socket)
-        self.rdtreceiver=RDTReceiver(self.socket)
+        self.rdtsender=RDTSender(self.sendsocket)       # Objects used to send and receive
+        self.rdtreceiver=RDTReceiver(self.recvsocket)   # data reliably over the UDP connection
         self.start()
 
-
+    # Starts the varous threads needed to run the program, including the server command line interface
+    # and the sending and receiving of data
     def start(self):
         self.mainthread=Thread(target=self.mainloop)
         self.mainthread.daemon=True
@@ -35,11 +39,12 @@ class ChatServer:
         self.adminloop()
         self.mainthread.join()
 
+    # Handles the server command line interface
     def adminloop(self):
         while True:
             cmd=''
             try:
-                cmd=input('> ')
+                cmd=input('> ')         # Get the user input
             except EOFError:
                 print("")
                 self.close()
@@ -51,62 +56,64 @@ class ChatServer:
     exit - stop the program
     help - show this help
                 """)
-            elif cmd == 'users':
+            elif cmd == 'users':        # Print out the currently logged in users
                 for user in self.users:
                     print (user)
 
-            elif cmd == 'files':
+            elif cmd == 'files':        # Print the currently buffered files sent from users
                 for file in self.files:
                     print (file.name)
-            elif cmd == 'exit':
+            elif cmd == 'exit':         # Close the server program
                 self.close()
 
+    # Handles the receiving of data sent by users passed up from the rdt protocol
     def mainloop(self):
         while True:
-            bytes, clientaddress=self.rdtreceiver.rdt_recv(65536)
-            print(str(bytes))
+            bytes, clientaddress=self.rdtreceiver.rdt_recv(65536)   # Get data from rdt level
+            print("Server.py: "+bytes.decode())
             #bytes, clientaddress=self.socket.recvfrom(65536)
-            self.handleMessage(bytes,clientaddress)
+            self.handleMessage(bytes,clientaddress)                 # Process the received message
 
+    # Handles the messages (packets) sent by user, depending on the type of message they sent
     def handleMessage(self,bytes,clientaddress):
         i=bytes.find(b' ',0)
-        action=bytes[0:i].decode()
+        action=bytes[0:i].decode()      # Extract the action type of the raw received bytes
 
-        if action == 'MESSAGE':
+        if action == 'MESSAGE':         # The user sent a chat message, which is to be sent to everyone elses
             lasti=i
-            i=bytes.find(b' ',lasti+1)
-            username=bytes[lasti+1:i].decode()
-            message=bytes[i+1:].decode()
-            self.getUser(username).addr=clientaddress # Update User ip
-            m=Message(username,message)
-            self.sendMsg(m)
-        elif action == 'LOGIN':
+            i=bytes.find(b' ',lasti+1)  # Extracts the starting point of the payload
+            username=bytes[lasti+1:i].decode()  # Extracts the username from the payload
+            message=bytes[i+1:].decode()        # Extracts the chat message from the payload
+            self.getUser(username).addr=clientaddress # Updates User's IP address
+            m=Message(username,message)         # Create a new message container
+            self.sendMsg(m)                     # Broadcast the message to every user
+        elif action == 'LOGIN':         # Message sent from a user who just logged uin
             username=bytes[i+1:].decode()
-            self.addUser(username,clientaddress)
-        elif action == 'LOGOUT':
+            self.addUser(username,clientaddress)    # Add the new user to the list of logged in users
+        elif action == 'LOGOUT':        # Message sent when a user logs out
             username=bytes[i+1:].decode()
             try:
-                self.users.remove(self.getUser(username))
+                self.users.remove(self.getUser(username))   # Remove the username from the list of logged in users
             except Exception:
                 print("Error logging out user")
-        elif action == 'FILE':
+        elif action == 'FILE':          # The user is uploading a file
+            lasti=i                     # These i and lasti values are used to segement the message for data extraction
+            i=bytes.find(b' ',lasti+1)
+            part=bytes[lasti+1:i].decode()  # Get the part identifier, (is it the last segemnt of the file)
             lasti=i
             i=bytes.find(b' ',lasti+1)
-            part=bytes[lasti+1:i].decode()
-            lasti=i
-            i=bytes.find(b' ',lasti+1)
-            username=bytes[lasti+1:i].decode()
+            username=bytes[lasti+1:i].decode()  # Extract the username of the user who is sending the file
             self.getUser(username).addr=clientaddress # Update User ip
             lasti=i
             i=bytes.find(b' ',lasti+1)
-            filename=bytes[lasti+1:i].decode()
-            filedata=bytes[i+1:]
-            f=self.getFileByName(filename)
+            filename=bytes[lasti+1:i].decode()  # Extract the filename
+            filedata=bytes[i+1:]                # Extract the file data
+            f=self.getFileByName(filename)      # See if part of the file is already received
             if f == None:
-                f=File(filename,username,filedata)
+                f=File(filename,username,filedata)  # No file found, create a new container for one
                 self.files.append(f)
             else:
-                f.bytes=b''.join([f.bytes,filedata]) #add on to file data
+                f.bytes=b''.join([f.bytes,filedata]) # Add on to file data if the server aready has a record of it
             if part=='LAST':
                 self.askAboutFile(f)
         elif action == 'GET':
@@ -180,7 +187,8 @@ class ChatServer:
         return None
 
     def close(self):
-        self.socket.close()
+        self.sendsocket.close()
+        self.recvsocket.close()
         sys.exit(0)
     def siginthandler(self,signum,frame):
         print("")

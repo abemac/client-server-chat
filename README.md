@@ -10,7 +10,7 @@ Contains the default server IP and port number the client will connect to
 **client.py**  
 Contains the code for the chat server  
 **rdt.conf**  
-Configuration settings used by rdt.py; Contains simulated packet loss percent  
+Configuration settings used by rdt.py; Contains simulated packet loss percent/rate  
 **rdt.py**  
 Contains the code for reliable data transfer over the UDP connection; Used by both the client and server   
 **README.md**  
@@ -32,7 +32,7 @@ Make sure the tkinter library for Python 3 is installed on the system:
 
 ## Configuration Files
 **client.conf**  
-This file contains 2 lines. The first line starts with "DefaultServer " and is then followed by an IP address. This value will appear in the client interface "Server IP" box by 
+This file contains 2 lines. The first line starts with "DefaultServer " and is then followed by an IP address. This value will appear in the client interface "Server IP" box by
 default when starting the client. From the client interface, this value can be changed, but every time the client is restarted, this value will be reloaded from the file.
 The second line starts with "DefaultServerPort " and is followed by a port number. This number can also be changed from the client interface as needed, and will appear in the "Server Port" box by default.
 For testing/use, the values provided in this file should be used to connect with the server, otherwise they must match the IP + port number the server is running on.  
@@ -40,13 +40,13 @@ An example of the file contents:
 `DefaultServer 127.0.0.1`  
 `DefaultServerPort 12057`  
 **rdt.conf**  
-This file contains 1 integer (and nothing else) that represents the percent chance a packet will be lost because of simulated packet loss.
+This file 1 line that starts with "PacketDropRate " and is followed by an integer. The integer represents the percent chance a packet will be lost because of simulated packet loss.
 The integer value must be between 0 and 100, inclusive, and it must be set before the client or server program is run.
-For example, if the number in the file is 20, then there is a 20% chance that any one packet sent by the client or server will be dropped.  
+For example, if the integer in the file is 20, then there is a 20% chance that any one packet sent by the client or server will be dropped.  
 An example of the file contents:  
-`20`  
+`PacketDropRate 20`  
 **server.conf**  
-This file contains 1 line that starts with "Port " and is followed by a port number. This is the default port number the server will open a UDP connection on when it is started. 
+This file contains 1 line that starts with "Port " and is followed by a port number. This is the default port number the server will open a UDP connection on when it is started.
 The client and server ports must match for the connection to work.  
 An example of the file contents:  
 `Port 12057`  

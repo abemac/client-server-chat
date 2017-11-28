@@ -122,15 +122,3 @@ class RDTReceiver:
                     return bytes[1:],addr
                 else:
                     self.udt_send_ACK(0,addr)
-
-    # Construct the ACK packet and send the message with UDP
-    # This functions is used by the receiver to send an ACK for the just received packet
-    # If resend is true, an ACK for the previous packet is sent, otherwise, a new ACK for the current packet is sent
-    def udt_send_ACK(self, ack_number,addr):
-        # Simulate packet loss
-        if random.randint(1, 100) <= self.packet_loss_percent:
-            return     # Packet is lost, don't actually send the packet
-        else:
-            # send the packet over UDP
-            data=str(ack_number).encode()
-            self.socket.sendto(data,addr)
