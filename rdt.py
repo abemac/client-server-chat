@@ -10,14 +10,6 @@ class RDTSender:
         self.states={}#dictionary of active connection states
 
 
-
-    def handshake(self):
-        id=str(time.time())
-        formatted_msg='HANDSHAKE '+id
-        self.socket.sendto(formatted_msg.encode,addr)
-        self.socket.recvfrom(2048)
-        self.states[id]=0
-
     def rdt_send(self, bytes,addr):
         id=str(addr)
         if id not in self.states:
@@ -26,9 +18,9 @@ class RDTSender:
         if self.states[id]==0:
             self.udt_send(bytes,0,addr)
             self.waitACK(0,id)
-            self.states[id]=2
-            print("Sender: State is now 2")
-        elif self.states[id]==2:
+            self.states[id]=1
+            print("Sender: State is now 1")
+        elif self.states[id]==1:
             self.udt_send(bytes,1,addr)
             self.waitACK(1,id)
             self.states[id]=0

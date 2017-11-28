@@ -68,9 +68,9 @@ class ChatServer:
     # Handles the receiving of data sent by users passed up from the rdt protocol
     def mainloop(self):
         while True:
-            bytes, clientaddress=self.rdtreceiver.rdt_recv(65536)   # Get data from rdt level
-            print("Server.py: "+bytes.decode())
-            #bytes, clientaddress=self.socket.recvfrom(65536)
+            #bytes, clientaddress=self.rdtreceiver.rdt_recv(65536)   # Get data from rdt level
+            #print("Server.py: "+bytes.decode())
+            bytes, clientaddress=self.socket.recvfrom(65536)
             self.handleMessage(bytes,clientaddress)                 # Process the received message
 
     # Handles the messages (packets) sent by user, depending on the type of message they sent
@@ -133,8 +133,8 @@ class ChatServer:
     # The interface between the application and the application and the rdt protocol
     # This is called whenever a the server needs to send a message
     def sendbytes(self,bytes,addr):
-        self.rdtsender.rdt_send(bytes,addr)
-        #self.socket.sendto(bytes,addr);
+        #self.rdtsender.rdt_send(bytes,addr)
+        self.socket.sendto(bytes,addr);
 
     # Breaks up a file and send it in segments
     def sendfile(self,f,user):

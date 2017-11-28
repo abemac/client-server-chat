@@ -152,12 +152,12 @@ class Client(tk.Frame):
         self.sendbytes(formatted_msg.encode())
 
     def sendbytes(self,bytes):
-        self.rdtsender.rdt_send(bytes,(self.serverip,self.serverport))
-        #self.socket.sendto(bytes,(self.serverip,self.serverport))
+        #self.rdtsender.rdt_send(bytes,(self.serverip,self.serverport))
+        self.socket.sendto(bytes,(self.serverip,self.serverport))
 
     def recvmessage(self):
-        bytes,addr=self.rdtreceiver.rdt_recv(65536)
-        #bytes,addr=self.socket.recvfrom(65536)
+        #bytes,addr=self.rdtreceiver.rdt_recv(65536)
+        bytes,addr=self.socket.recvfrom(65536)
         print("Client: received rdt "+str(bytes))
         i=bytes.find(b' ',0)
         action=bytes[0:i].decode()
