@@ -61,7 +61,8 @@ class Client(tk.Frame):
         self.uname.grid(row=2, column=1)
         self.connectBtn = tk.Button(self, text="Connect", fg="red",command=self.onConnect)  # Create Connect button
         self.connectBtn.grid(row=3,column=1)
-
+        
+        # Bind enter to Connect button
         self.connectBtn.bind('<Return>',self.onEnterPressLogin)
         self.uname.bind('<Return>',self.onEnterPressLogin)
         self.port.bind('<Return>',self.onEnterPressLogin)
@@ -73,11 +74,11 @@ class Client(tk.Frame):
 
     # This function is called when the "Connect button is created"
     def onConnect(self):
-        self.serverip = str(self.ip.get())
-        self.username = str(self.uname.get())
-        self.serverport=int(self.port.get())
-        self.username=self.username.replace(' ','-')
-        self.winfo_toplevel().title("Chat Client - "+self.username)
+        self.serverip = str(self.ip.get())      # Sets the server IP using the entered value
+        self.username = str(self.uname.get())   # Sets the username using the entered value
+        self.serverport=int(self.port.get())    # Sets the port number using the entered value
+        self.username=self.username.replace(' ','-')    # Replaces spaces in username with hyphens
+        self.winfo_toplevel().title("Chat Client - "+self.username) # The following calls remove the Login interface which is longer needed
         self.ip.destroy()
         self.uname.destroy()
         self.l1.destroy()
