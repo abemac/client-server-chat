@@ -203,7 +203,7 @@ class Client(tk.Frame):
                 self.msgs.insert(tk.END,("You: "+message.replace('\n',' ')))    # Display "You" next to your message
             else:
                 self.msgs.insert(tk.END,(username+": "+message.replace('\n',' ')))  # Other wise display the actual user name
-        self.msgs.see(tk.END) #scroll message view to end
+            self.msgs.see(tk.END) #scroll message view to end
         elif action == 'ERROR':     # If the server had an error
             msg=bytes[i+1:].decode()
             print('SERVER ERROR: '+message);    # Display the error
