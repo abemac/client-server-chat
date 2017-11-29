@@ -8,7 +8,6 @@ from rdt import *
 # This file contains the code for the ChatServer class. The class contains functions that manage the current users,
 # receive messages and files from users, send the messages/files to every other user.
 # This program is multi-threaded to allow the simultaneous sending and receiving of data.
-
 class ChatServer:
     def __init__(self):
         f = open('server.conf')
@@ -28,7 +27,7 @@ class ChatServer:
         self.rdt=RDTManager(self.socket)       # Objects used to send and receive
         self.start()
 
-    # Starts the varous threads needed to run the program, including the server command line interface
+    # Starts the various threads needed to run the program, including the server command line interface
     # and the sending and receiving of data
     def start(self):
         self.mainthread=Thread(target=self.mainloop)
@@ -47,7 +46,7 @@ class ChatServer:
                 print("")
                 self.close()
 
-            if cmd=='help':
+            if cmd=='help':             # Print out the help message
                 print ("""
     users - show current users
     files - show buffered files
@@ -73,7 +72,7 @@ class ChatServer:
 
     # Handles the messages (packets) sent by user, depending on the type of message they sent
     def handleMessage(self,bytes,clientaddress):
-        i=bytes.find(b' ',0)
+        i=bytes.find(b' ',0)            # These i and lasti values are used to segment the message for data extraction
         action=bytes[0:i].decode()      # Extract the action type of the raw received bytes
 
         if action == 'MESSAGE':         # The user sent a chat message, which is to be sent to everyone elses
@@ -195,6 +194,8 @@ class ChatServer:
     def close(self):
         self.socket.close()
         sys.exit(0)
+    
+    # Handles system signals
     def siginthandler(self,signum,frame):
         print("")
         self.close()
