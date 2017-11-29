@@ -1,5 +1,5 @@
 from socket import *
-from threading import Thread
+from threading import Thread,Lock
 import tkinter as tk
 import tkinter.filedialog as filechooser
 import tkinter.messagebox as dialog
@@ -34,8 +34,8 @@ class Client(tk.Frame):
         f.close()
         self.createLoginWidgets()
         self.socket=socket(AF_INET,SOCK_DGRAM)
-        self.rdtsender=RDTSender(self.socket)
-        self.rdtreceiver=RDTReceiver(self.socket)
+        self.rdt=RDTManager(self.socket)
+
         self.running=False      # Is the client program running and ready to send/receive?
         self.loggedin=False     # Has a user logged in?
         self.filebuf=bytearray()
@@ -107,8 +107,9 @@ class Client(tk.Frame):
             f=open(filetosend,'rb')
             bytes=f.read(filesize)
             self.sendfile(bytes,filename)
-        except Exception:
-            dialog.showinfo('File Transfer','Error')
+        except Exception as e:
+            print(repr(e))
+            dialog.showinfo('File Transfer',str(e))
 
     def login(self,username):
         formatted_msg='LOGIN '+username
@@ -152,13 +153,12 @@ class Client(tk.Frame):
         self.sendbytes(formatted_msg.encode())
 
     def sendbytes(self,bytes):
-        #self.rdtsender.rdt_send(bytes,(self.serverip,self.serverport))
-        self.socket.sendto(bytes,(self.serverip,self.serverport))
+        self.rdt.send(bytes,(self.serverip,self.serverport))
+        #self.socket.sendto(bytes,(self.serverip,self.serverport))
 
     def recvmessage(self):
-        #bytes,addr=self.rdtreceiver.rdt_recv(65536)
-        bytes,addr=self.socket.recvfrom(65536)
-        print("Client: received rdt "+str(bytes))
+        bytes,addr=self.rdt.recv()
+        #bytes,addr=self.socket.recvfrom(65536)
         i=bytes.find(b' ',0)
         action=bytes[0:i].decode()
         if action == 'MESSAGE':
