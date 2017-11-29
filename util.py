@@ -8,7 +8,7 @@ import time
 class User:
     def __init__(self,username,addr):
         self.username=username
-        self.addr=addr;
+        self.addr=addr  # The network address of the user
     def __str__(self):
         return self.username+' '+str(self.addr)
 
