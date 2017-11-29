@@ -16,6 +16,8 @@ class Client(tk.Frame):
     def __init__(self,root):
         super().__init__(root)
         root.protocol("WM_DELETE_WINDOW",self.close)
+        self.root = root
+        self.winfo_toplevel().title("Chat Client")
         self.pack()
         self.serverip = ""
         self.username = ""
@@ -60,11 +62,22 @@ class Client(tk.Frame):
         self.connectBtn = tk.Button(self, text="Connect", fg="red",command=self.onConnect)
         self.connectBtn.grid(row=3,column=1)
 
+        self.connectBtn.bind('<Return>',self.onEnterPressLogin)
+        self.uname.bind('<Return>',self.onEnterPressLogin)
+        self.port.bind('<Return>',self.onEnterPressLogin)
+        self.ip.bind('<Return>',self.onEnterPressLogin)
+        self.uname.focus()
+
+    def onEnterPressLogin(self,event):
+        self.onConnect()
+
+
     def onConnect(self):
         self.serverip = str(self.ip.get())
         self.username = str(self.uname.get())
         self.serverport=int(self.port.get())
         self.username=self.username.replace(' ','-')
+        self.winfo_toplevel().title("Chat Client - "+self.username)
         self.ip.destroy()
         self.uname.destroy()
         self.l1.destroy()
@@ -93,6 +106,13 @@ class Client(tk.Frame):
         self.msgs.pack(side=tk.LEFT,fill=tk.BOTH)
         self.scrollbar.config(command=self.msgs.yview)
 
+        self.winfo_toplevel().bind('<Return>',self.onEnterPressSend)
+        self.textentry.focus()
+
+    def onEnterPressSend(self,event):
+        if self.textentry == self.root.focus_get():
+            self.onSendBtnPress()
+
     def onSendBtnPress(self):
         msg=self.textentry.get("1.0",tk.END)
         self.textentry.delete("1.0",tk.END)
@@ -101,23 +121,27 @@ class Client(tk.Frame):
 
     def onSendfileBtnPress(self):
         filetosend=filechooser.askopenfilename()
-        try:
-            filesize=os.path.getsize(filetosend)
-            filename=ntpath.basename(filetosend).replace(' ','-')
-            f=open(filetosend,'rb')
-            bytes=f.read(filesize)
-            self.sendfile(bytes,filename)
-        except Exception as e:
-            #print(repr(e))
-            dialog.showinfo('File Transfer',str(e))
+        if filetosend != '' and filetosend!=():
+            try:
+                filesize=os.path.getsize(filetosend)
+                filename=ntpath.basename(filetosend).replace(' ','-')
+                f=open(filetosend,'rb')
+                bytes=f.read(filesize)
+                self.sendfile(bytes,filename)
+            except Exception as e:
+                #print(repr(e))
+                dialog.showinfo('File Transfer',str(e))
 
     def login(self,username):
         formatted_msg='LOGIN '+username
         self.sendbytes(formatted_msg.encode())
+        self.loggedin=True
 
     def logout(self,username):
-        formatted_msg='LOGOUT '+username
-        self.sendbytes(formatted_msg.encode())
+        if self.loggedin==True:
+            formatted_msg='LOGOUT '+username
+            self.sendbytes(formatted_msg.encode())
+            self.loggedin=False
 
     def start(self):
         self.running=True
@@ -170,6 +194,7 @@ class Client(tk.Frame):
                 self.msgs.insert(tk.END,("You: "+message.replace('\n',' ')))
             else:
                 self.msgs.insert(tk.END,(username+": "+message.replace('\n',' ')))
+            self.msgs.see(tk.END)
         elif action == 'ERROR':
             msg=bytes[i+1:].decode()
             print('SERVER ERROR: '+message);
