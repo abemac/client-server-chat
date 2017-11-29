@@ -4,25 +4,13 @@ from threading import Thread,Timer
 import time
 import queue
 
+
 class ConsoleLogger:
     def __init__(self,printlogs):
         self.printlogs=printlogs
     def log(self,str):
         if self.printlogs:
             print(str)
-class UserBuffer:
-    def __init__(self):
-        self.self.acks=queue.Queue()
-
-
-    def getACK(self):
-        return self.acks.get()
-    def getDATA(self):
-        return self.data.get()
-
-
-
-
 
 class RDTManager:
     def __init__(self,socket):
@@ -34,12 +22,12 @@ class RDTManager:
                                              # Percent chance any one packet being sent is lost due to simulated packet loss
 
         f.close()
-        self.data=queue.Queue()
         self.socket=socket
         self.logger=ConsoleLogger(True)
         self.sender=RDTSender(socket,self)
         self.receiver=RDTReceiver(socket,self)
-        self.userbuffers={}#diciontary id:UserBuffer
+        self.acks=queue.Queue()
+        self.data=queue.Queue()
         self.listener=Thread(target=self.listen)
         self.listener.daemon=True
         self.listener.start()
@@ -47,15 +35,22 @@ class RDTManager:
     def listen(self):
         while True:
             bytes,addr=self.socket.recvfrom(65536)
-            id=str(addr)
-            if id not in self.userbuffers:
-                self.userbuffers[id]=UserBuffer()
-            self.userbuffers[id].put(bytes)
+            if self.isACK(bytes):
+                self.acks.put((bytes,addr))
+            else:
+                #self.acks.put((bytes,addr))
+                self.data.put((bytes,addr))
 
-    def getACK(self,id):
-        return self.userbuffers[id].getACK()
+
+    def getACK(self):
+        ack=self.acks.get()
+        self.acks.task_done()
+        return ack
     def getDATA(self):
-        return self.userbuffers[id].getDATA()
+        data=self.data.get()
+        self.data.task_done()
+        return data
+
 
     def send(self,bytes,addr):
         self.sender.rdt_send(bytes,addr)
@@ -72,6 +67,7 @@ class RDTManager:
 
 
 
+
 class RDTSender:
 
     def __init__(self,socket,manager):
@@ -80,10 +76,11 @@ class RDTSender:
         self.logger=manager.logger
         self.states={}#dictionary of active connection states
         self.timer=None
-        self.timeout_value=0.1
+        self.timeout_value=.2
     # This function is called then the timer object times out
     # It is used to resend the lost data/dropped data
     def timeout(self,bytes,seqnum,addr):
+        print("sender timout "+bytes.decode())
         self.udt_send(bytes,seqnum,addr)
         self.timer=Timer(self.timeout_value, self.timeout,args=(bytes,seqnum,addr));
         self.timer.start()
@@ -113,17 +110,20 @@ class RDTSender:
     def waitACK(self,ack_number,prev_id):
         self.logger.log("Sender "+prev_id+" waiting for ack " +str(ack_number))
         while True:
-            bytes,addr=self.manager.getACK(prev_id)
+            bytes,addr=self.manager.getACK()
             ack_num = int(bytes[0:1]) # Extract the sequence number from the message
-            if ack_num==ack_number:
+            id=str(addr)
+            if id == prev_id and ack_num==ack_number:
                 self.logger.log("Sender: Ack "+str(ack_number)+" Received")
                 return
 
 
     def udt_send(self,bytes,seqnum,addr):
         if random.randint(1, 100) <= self.manager.packet_loss_percent:
+            print("Sender dropping packet "+bytes.decode())
             return     # Packet is lost, don't actually send the packet
         else:
+            print("Sender sending "+bytes.decode())
             seq_byte=str(seqnum).encode()
             data=b''.join([seq_byte,bytes])
             self.socket.sendto(data,addr)
@@ -166,6 +166,7 @@ class RDTReceiver:
     # If resend is true, an ACK for the previous packet is sent, otherwise, a new ACK for the current packet is sent
     def ACK(self, ack_number,addr):
         if random.randint(1, 100) <= self.manager.packet_loss_percent:
+            print("Reciever dropped ack "+str(ack_number))
             return     # Packet is lost, don't actually send the packet
         else:
             data=str(ack_number).encode()
