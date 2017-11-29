@@ -23,14 +23,17 @@ class RDTManager:
 
         f.close()
         self.socket=socket
-        self.logger=ConsoleLogger(True)
-        self.sender=RDTSender(socket,self)
-        self.receiver=RDTReceiver(socket,self)
+        self.logger=ConsoleLogger(False)
+
         self.acks=queue.Queue()
         self.data=queue.Queue()
+        self.toapp = queue.Queue()
+        self.sender=RDTSender(socket,self)
+        self.receiver=RDTReceiver(socket,self)
         self.listener=Thread(target=self.listen)
         self.listener.daemon=True
         self.listener.start()
+
 
     def listen(self):
         while True:
@@ -38,24 +41,18 @@ class RDTManager:
             if self.isACK(bytes):
                 self.acks.put((bytes,addr))
             else:
-                #self.acks.put((bytes,addr))
                 self.data.put((bytes,addr))
 
 
     def getACK(self):
-        ack=self.acks.get()
-        self.acks.task_done()
-        return ack
+        return self.acks.get()
     def getDATA(self):
-        data=self.data.get()
-        self.data.task_done()
-        return data
-
+        return self.data.get()
 
     def send(self,bytes,addr):
         self.sender.rdt_send(bytes,addr)
     def recv(self):
-        return self.receiver.rdt_recv()
+        return self.toapp.get()
 
     # Checks if the received message is an ACK message.
     # An ACK message will only have 1 value in it, i.e. have a length of 1
@@ -76,11 +73,11 @@ class RDTSender:
         self.logger=manager.logger
         self.states={}#dictionary of active connection states
         self.timer=None
-        self.timeout_value=.2
+        self.timeout_value=.01
     # This function is called then the timer object times out
     # It is used to resend the lost data/dropped data
     def timeout(self,bytes,seqnum,addr):
-        print("sender timout "+bytes.decode())
+        #self.logger.log("sender timout "+bytes.decode())
         self.udt_send(bytes,seqnum,addr)
         self.timer=Timer(self.timeout_value, self.timeout,args=(bytes,seqnum,addr));
         self.timer.start()
@@ -117,13 +114,20 @@ class RDTSender:
                 self.logger.log("Sender: Ack "+str(ack_number)+" Received")
                 return
 
+    # Checks if the received message is an ACK message.
+    # An ACK message will only have 1 value in it, i.e. have a length of 1
+    def isACK(self, pkt):
+        if len(pkt) == 1:
+            return True
+        else:
+            return False
 
     def udt_send(self,bytes,seqnum,addr):
         if random.randint(1, 100) <= self.manager.packet_loss_percent:
-            print("Sender dropping packet "+bytes.decode())
+            #self.logger.log("Sender dropping packet "+bytes.decode())
             return     # Packet is lost, don't actually send the packet
         else:
-            print("Sender sending "+bytes.decode())
+            #self.logger.log("Sender sending "+bytes.decode())
             seq_byte=str(seqnum).encode()
             data=b''.join([seq_byte,bytes])
             self.socket.sendto(data,addr)
@@ -137,6 +141,10 @@ class RDTReceiver:
         self.socket=socket
         self.manager=manager
 
+        self.recvThread=Thread(target=self.rdt_recv)
+        self.recvThread.daemon=True
+        self.recvThread.start()
+
     def rdt_recv(self):
         while True:
             bytes,addr=self.manager.getDATA()   # Receive the UDP packet
@@ -149,14 +157,14 @@ class RDTReceiver:
                 if seq == 0:
                     self.ACK(0,addr)
                     self.states[id]=1
-                    return bytes[1:],addr
+                    self.manager.toapp.put((bytes[1:],addr))
                 else:
                     self.ACK(1,addr)
             elif self.states[id] == 1:
                 if seq == 1:
                     self.ACK(1,addr)
                     self.states[id]=0
-                    return bytes[1:],addr
+                    self.manager.toapp.put((bytes[1:],addr))
                 else:
                     self.ACK(0,addr)
 
@@ -166,7 +174,7 @@ class RDTReceiver:
     # If resend is true, an ACK for the previous packet is sent, otherwise, a new ACK for the current packet is sent
     def ACK(self, ack_number,addr):
         if random.randint(1, 100) <= self.manager.packet_loss_percent:
-            print("Reciever dropped ack "+str(ack_number))
+            self.logger.log("Reciever dropped ack "+str(ack_number))
             return     # Packet is lost, don't actually send the packet
         else:
             data=str(ack_number).encode()

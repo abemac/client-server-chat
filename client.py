@@ -108,7 +108,7 @@ class Client(tk.Frame):
             bytes=f.read(filesize)
             self.sendfile(bytes,filename)
         except Exception as e:
-            print(repr(e))
+            #print(repr(e))
             dialog.showinfo('File Transfer',str(e))
 
     def login(self,username):
