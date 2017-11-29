@@ -28,8 +28,8 @@ class ChatServer:
         self.rdt=RDTManager(self.socket)       # Objects used to send and receive
         self.start()
 
-    # Starts the varous threads needed to run the program, including the server command line interface
-    # and the sending and receiving of data
+    # Starts the a thread needed to receive messages
+    # The main process handles the sending and server command line
     def start(self):
         self.mainthread=Thread(target=self.mainloop)
         self.mainthread.daemon=True
@@ -63,6 +63,8 @@ class ChatServer:
                     print (file.name)
             elif cmd == 'exit':         # Close the server program
                 self.close()
+            else:
+                print("Command not recognized (type \"help\" to see available commands)")
 
     # Handles the receiving of data sent by users passed up from the rdt protocol
     def mainloop(self):
@@ -71,20 +73,26 @@ class ChatServer:
             #bytes, clientaddress=self.socket.recvfrom(65536)
             self.handleMessage(bytes,clientaddress)                 # Process the received message
 
+    # The interface between the application and the application and the rdt protocol
+    # This is called whenever a the server needs to send a message
+    def sendbytes(self,bytes,addr):
+        self.rdtsender.rdt_send(bytes,addr)
+        #self.socket.sendto(bytes,addr);
+
     # Handles the messages (packets) sent by user, depending on the type of message they sent
     def handleMessage(self,bytes,clientaddress):
         i=bytes.find(b' ',0)
         action=bytes[0:i].decode()      # Extract the action type of the raw received bytes
 
-        if action == 'MESSAGE':         # The user sent a chat message, which is to be sent to everyone elses
-            lasti=i
+        if action == 'MESSAGE':         # The user sent a chat message, which is to be sent to everyone else
+            lasti=i                     # These i and lasti values are used to segment the message for data extraction
             i=bytes.find(b' ',lasti+1)                  # Extracts the starting point of the payload
             username=bytes[lasti+1:i].decode()          # Extracts the username from the payload
             message=bytes[i+1:].decode()                # Extracts the chat message from the payload
             self.getUser(username).addr=clientaddress   # Updates User's IP address
             m=Message(username,message)                 # Create a new message container
             self.sendMsg(m)                             # Broadcast the message to every user
-        elif action == 'LOGIN':     # Message sent from a user who just logged uin
+        elif action == 'LOGIN':     # Message sent from a user who just logged in
             username=bytes[i+1:].decode()
             self.addUser(username,clientaddress)  # Add the new user to the list of logged in users
         elif action == 'LOGOUT':    # Message sent when a user logs out
@@ -92,9 +100,9 @@ class ChatServer:
             try:
                 self.users.remove(self.getUser(username))   # Remove the username from the list of logged in users
             except Exception:
-                print("Error logging out user")
+                print("Error logging out user; Username not found among logged in users")
         elif action == 'FILE':          # The user is uploading a file
-            lasti=i                     # These i and lasti values are used to segment the message for data extraction
+            lasti=i
             i=bytes.find(b' ',lasti+1)
             part=bytes[lasti+1:i].decode()  # Get the part identifier, (is it the last segment of the file)
             lasti=i
@@ -125,6 +133,7 @@ class ChatServer:
     # Broadcasts a chat message to every user connected to the server
     def sendMsg(self,m):
         formatted_msg='MESSAGE '+m.user_from+' '+m.message      # Crafts the payload into our standard format
+        print("Server: broadcasting \"" + formatted_msg.rstrip()  + "\" to all users")
         for user in self.users:
             self.sendbytes(formatted_msg.encode(),user.addr)    # Loops through all the users and send them the message
 
