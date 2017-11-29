@@ -123,8 +123,8 @@ class Client(tk.Frame):
 
     # Runs when the user clicks the SEND button for text
     def onSendfileBtnPress(self):
+        filetosend=filechooser.askopenfilename()    # Open the file explorer so the user can select a file
         if filetosend != '' and filetosend!=():
-            filetosend=filechooser.askopenfilename()    # Open the file explorer so the user can select a file
             try:
                 filesize=os.path.getsize(filetosend)    # Get the size of the selected file
                 filename=ntpath.basename(filetosend).replace(' ','-')   # Replace spaces in a user name with hyphens
